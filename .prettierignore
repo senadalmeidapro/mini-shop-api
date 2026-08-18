@@ -1,0 +1,12 @@
+node_modules
+dist
+/.idea
+/.venv
+/.vscode
+/prisma/migrations
+**/*.d.ts
+**/*.js
+playwright-report
+.turbo
+*.sqlite
+pnpm-lock.yaml

@@ -30,14 +30,18 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.user.findOneBy({ email: dto.email });
+    const user = await this.user
+      .createQueryBuilder('user')
+      .addSelect(['user.password', 'user.token'])
+      .where('user.email = :email', { email: dto.email })
+      .getOne();
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
     const isMatch = await bcrypt.compare(dto.password, user.password);
     if (!isMatch) throw new UnauthorizedException('Invalid credentials');
 
     const token = await this.jwt.signAsync(
-      { sub: user.id },
+      { sub: user.id, role: user.role },
       {
         secret: this.config.get<string>('JWT_SECRET'),
         expiresIn: 900,
@@ -52,7 +56,7 @@ export class AuthService {
     const user = await this.user.findOneBy({ id: userId });
     if (!user) throw new UnauthorizedException('');
 
-    await this.user.update(user.id, { token: undefined });
+    await this.user.update(user.id, { token: null });
     return { message: 'Logged out. Discard your access token client-side.' };
   }
 }

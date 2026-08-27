@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -25,7 +30,7 @@ export class UsersService {
     }
 
     dto.password = await bcrypt.hash(dto.password, 10);
-    const user = this.user.create(dto);
+    const user = this.user.create({ ...dto, role: 'user' });
     return await this.user.save(user);
   }
 
@@ -33,13 +38,15 @@ export class UsersService {
     return await this.user.find();
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, actorId?: string, actorRole?: 'user' | 'admin') {
+    if (actorRole !== 'admin' && actorId !== id) throw new ForbiddenException('Access forbidden');
     const user = await this.user.findOneBy({ id });
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
 
-  async update(id: string, dto: UpdateUserDto) {
+  async update(id: string, dto: UpdateUserDto, actorId?: string, actorRole?: 'user' | 'admin') {
+    if (actorRole !== 'admin' && actorId !== id) throw new ForbiddenException('Access forbidden');
     const existing = await this.user.findOneBy({ id });
     if (!existing) {
       throw new NotFoundException('User not found');
@@ -49,11 +56,15 @@ export class UsersService {
       dto.password = await bcrypt.hash(dto.password, 10);
     }
 
-    await this.user.update(id, dto);
-    return await this.findOne(id);
+    await this.user.update(id, {
+      ...dto,
+      ...(dto.password ? { token: null } : {}),
+    });
+    return await this.findOne(id, actorId, actorRole);
   }
 
-  async remove(id: string) {
+  async remove(id: string, actorId?: string, actorRole?: 'user' | 'admin') {
+    if (actorRole !== 'admin' && actorId !== id) throw new ForbiddenException('Access forbidden');
     const existing = await this.user.findOneBy({ id });
     if (!existing) {
       throw new NotFoundException('User not found');

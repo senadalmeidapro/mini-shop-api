@@ -19,7 +19,7 @@ export class User {
   @Column({ unique: true, length: 255 })
   email!: string;
 
-  @Column()
+  @Column({ select: false })
   password!: string;
 
   @Column({ name: 'full_name', nullable: true, length: 255 })
@@ -28,8 +28,8 @@ export class User {
   @Column({ type: 'enum', enum: ['user', 'admin'], default: 'user' })
   role!: 'user' | 'admin';
 
-  @Column({ nullable: true })
-  token?: string;
+  @Column({ nullable: true, select: false })
+  token?: string | null;
 
   @OneToMany(() => Address, (addresses) => addresses.user, {
     cascade: true,

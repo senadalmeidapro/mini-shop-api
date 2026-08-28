@@ -1,26 +1,52 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Product } from './entities/product.entity';
+import { Repository } from 'typeorm';
+import { Category } from '../categories/entities/category.entity';
 
 @Injectable()
 export class ProductsService {
-  create(createProductDto: CreateProductDto) {
-    return 'This action adds a new product';
+  constructor(
+    @InjectRepository(Category)
+    private readonly category: Repository<Category>,
+
+    @InjectRepository(Product)
+    private readonly product: Repository<Product>,
+  ) {}
+
+  async create(categoryId: string, createProductDto: CreateProductDto) {
+    const existingCategory = await this.category.findOneBy({ id: categoryId });
+    if (!existingCategory) throw new NotFoundException('Category not found');
+
+    const product = this.product.create({ ...createProductDto, category: existingCategory });
+    return await this.category.save(product);
   }
 
-  findAll() {
-    return `This action returns all products`;
+  async findAll() {
+    return await this.product.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} product`;
+  async findOne(id: string) {
+    const existingProduct = await this.product.findOneBy({ id });
+    if (!existingProduct) throw new NotFoundException('Product not found');
+
+    return existingProduct;
   }
 
-  update(id: number, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;
+  async update(id: string, updateProductDto: UpdateProductDto) {
+    const existingProduct = await this.product.findOneBy({ id });
+    if (!existingProduct) throw new NotFoundException('Product not found');
+
+    await this.product.update(id, updateProductDto);
+    return await this.product.findOneBy({ id });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} product`;
+  async remove(id: string) {
+    const existingProduct = await this.product.findOneBy({ id });
+    if (!existingProduct) throw new NotFoundException('Product not found');
+
+    return await this.product.delete(id);
   }
 }

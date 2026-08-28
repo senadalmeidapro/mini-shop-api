@@ -1,26 +1,63 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Review } from './entities/review.entity';
+import { Repository } from 'typeorm';
+import { Product } from '../products/entities/product.entity';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class ReviewsService {
-  create(createReviewDto: CreateReviewDto) {
-    return 'This action adds a new review';
+  constructor(
+    @InjectRepository(User)
+    private readonly user: Repository<User>,
+
+    @InjectRepository(Review)
+    private readonly review: Repository<Review>,
+
+    @InjectRepository(Product)
+    private readonly product: Repository<Product>,
+  ) {}
+
+  async create(userId: string, productId: string, createReviewDto: CreateReviewDto) {
+    const existingUser = await this.user.findOneBy({ id: userId });
+    if (!existingUser) throw new NotFoundException('User not found');
+
+    const existingProduct = await this.product.findOneBy({ id: productId });
+    if (!existingProduct) throw new NotFoundException('Product not found');
+
+    const review = this.review.create({
+      ...createReviewDto,
+      user: existingUser,
+      product: existingProduct,
+    });
+    return await this.review.save(review);
   }
 
-  findAll() {
-    return `This action returns all reviews`;
+  async findAll() {
+    return await this.review.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} review`;
+  async findOne(id: string) {
+    const existingReview = await this.review.findOneBy({ id });
+    if (!existingReview) throw new NotFoundException('Review not found');
+
+    return existingReview;
   }
 
-  update(id: number, updateReviewDto: UpdateReviewDto) {
-    return `This action updates a #${id} review`;
+  async update(id: string, updateReviewDto: UpdateReviewDto) {
+    const existingReview = await this.review.findOneBy({ id });
+    if (!existingReview) throw new NotFoundException('Review not found');
+
+    await this.review.update(id, updateReviewDto);
+    return await this.review.findOneBy({ id });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} review`;
+  async remove(id: string) {
+    const existingReview = await this.review.findOneBy({ id });
+    if (!existingReview) throw new NotFoundException('Review not found');
+
+    return await this.review.delete(id);
   }
 }

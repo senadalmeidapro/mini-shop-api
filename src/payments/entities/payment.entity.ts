@@ -20,11 +20,15 @@ export class Payment {
   @Column({ type: 'decimal', precision: 12, scale: 2 })
   amount!: number;
 
-  @Column({ type: 'enum', enum: ['pending', 'succeeded', 'failed'], default: 'pending' })
-  status!: 'pending' | 'succeeded' | 'failed';
+  @Column({
+    type: 'enum',
+    enum: ['pending', 'succeeded', 'failed', 'cancelled'],
+    default: 'pending',
+  })
+  status!: 'pending' | 'succeeded' | 'failed' | 'cancelled';
 
-  @Column()
-  method!: string;
+  @Column({ type: 'enum', enum: ['card', 'paypal', 'crypto'] })
+  method!: 'card' | 'paypal' | 'crypto';
 
   @Column({ name: 'transaction_id', nullable: true })
   transactionId?: string;

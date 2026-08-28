@@ -1,26 +1,53 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreatePaymentDto } from './dto/create-payment.dto';
-import { UpdatePaymentDto } from './dto/update-payment.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Order } from '../orders/entities/order.entity';
+import { Repository } from 'typeorm';
+import { Payment } from './entities/payment.entity';
 
 @Injectable()
 export class PaymentsService {
-  create(createPaymentDto: CreatePaymentDto) {
-    return 'This action adds a new payment';
+  constructor(
+    @InjectRepository(Order)
+    private readonly order: Repository<Order>,
+
+    @InjectRepository(Payment)
+    private readonly payment: Repository<Payment>,
+  ) {}
+
+  async create(userId: string, orderId: string, createPaymentDto: CreatePaymentDto) {
+    const existingOrder = await this.order.findOneBy({ id: orderId });
+    if (!existingOrder) throw new NotFoundException('Order not found');
+    if (userId != existingOrder.userId) {
+      throw new ForbiddenException('You are not the owner of this order');
+    }
+
+    const payment = this.payment.create({ ...createPaymentDto, order: existingOrder });
+    return await this.payment.save(payment);
   }
 
-  findAll() {
-    return `This action returns all payments`;
+  async findAll() {
+    return await this.payment.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} payment`;
+  async findOne(id: string) {
+    const existingOrder = await this.order.findOneBy({ id });
+    if (!existingOrder) throw new NotFoundException('Order not found');
+    return existingOrder;
   }
 
-  update(id: number, updatePaymentDto: UpdatePaymentDto) {
-    return `This action updates a #${id} payment`;
+  async update(id: string, updatePaymentDto: Pick<CreatePaymentDto, 'status'>) {
+    const existingOrder = await this.order.findOneBy({ id });
+    if (!existingOrder) throw new NotFoundException('Order not found');
+
+    await this.payment.update(id, updatePaymentDto);
+    return await this.payment.findOneBy({ id });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} payment`;
+  async cancel(id: string) {
+    const existingOrder = await this.order.findOneBy({ id });
+    if (!existingOrder) throw new NotFoundException('Order not found');
+
+    await this.payment.update(id, { status: 'cancelled' });
   }
 }

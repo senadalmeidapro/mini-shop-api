@@ -6,12 +6,10 @@ export class AddressDto {
   street?: string;
 
   @IsString()
-  @IsOptional()
-  city?: string;
+  city!: string;
 
   @IsString()
-  @IsOptional()
-  country?: string;
+  country!: string;
 
   @IsString()
   @IsOptional()

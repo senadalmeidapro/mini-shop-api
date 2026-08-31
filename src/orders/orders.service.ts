@@ -48,16 +48,19 @@ export class OrdersService {
     });
   }
 
-  async findAll() {
-    return await this.order.find();
+  async findAll(admin: boolean = false, userId: string) {
+    if (admin) {
+      return await this.order.find();
+    }
+    return await this.order.find({ where: { userId } });
   }
 
-  async findOne(id: string, userId: string) {
+  async findOne(id: string, userId: string, admin: boolean = false) {
     const existingOrder = await this.order.findOneBy({ id });
     if (!existingOrder) throw new NotFoundException('Order not found');
 
-    if (existingOrder.userId != userId) {
-      throw new ForbiddenException('Yu are not the owner of this order');
+    if (!admin && existingOrder.userId != userId) {
+      throw new ForbiddenException('You are not the owner of this order');
     }
 
     return existingOrder;
@@ -68,10 +71,35 @@ export class OrdersService {
     if (!existingOrder) throw new NotFoundException('Order not found');
 
     if (existingOrder.userId != userId) {
-      throw new ForbiddenException('Yu are not the owner of this order');
+      throw new ForbiddenException('You are not the owner of this order');
+    }
+
+    if (existingOrder.status !== 'pending') {
+      throw new BadRequestException('Only pending orders can be updated');
     }
 
     await this.order.update(id, updateOrderDto);
     return await this.order.findOneBy({ id });
+  }
+
+  async cancelOrder(id: string) {
+    return this.dataSource.transaction(async (manager) => {
+      const existingOrder = await manager.findOne(Order, {
+        where: { id },
+        relations: { orderItems: true },
+      });
+      if (!existingOrder) throw new NotFoundException('Order not found');
+
+      if (existingOrder.status !== 'pending') {
+        throw new BadRequestException('Only pending orders can be cancelled');
+      }
+
+      for (const item of existingOrder.orderItems) {
+        await manager.increment(Product, { id: item.productId }, 'stock', item.quantity);
+      }
+
+      existingOrder.status = 'cancelled';
+      return manager.save(Order, existingOrder);
+    });
   }
 }

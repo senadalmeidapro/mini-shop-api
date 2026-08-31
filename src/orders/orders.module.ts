@@ -10,5 +10,6 @@ import { DataSource } from 'typeorm';
   imports: [TypeOrmModule.forFeature([Order, Product, DataSource])],
   controllers: [OrdersController],
   providers: [OrdersService],
+  exports: [OrdersService],
 })
 export class OrdersModule {}

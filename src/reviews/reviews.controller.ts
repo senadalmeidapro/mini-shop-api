@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
@@ -11,7 +11,7 @@ export class ReviewsController {
   @Post(':productId')
   create(
     @currentUser('sub') sub: string,
-    @Param('productId') productId: string,
+    @Param('productId', ParseUUIDPipe) productId: string,
     @Body() createReviewDto: CreateReviewDto,
   ) {
     return this.reviewsService.create(sub, productId, createReviewDto);
@@ -23,17 +23,25 @@ export class ReviewsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.reviewsService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateReviewDto: UpdateReviewDto) {
-    return this.reviewsService.update(id, updateReviewDto);
+  update(
+    @currentUser('sub') sub: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateReviewDto: UpdateReviewDto,
+  ) {
+    return this.reviewsService.update(id, updateReviewDto, sub);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.reviewsService.remove(id);
+  remove(
+    @currentUser('sub') sub: string,
+    @currentUser('role') role: 'user' | 'admin',
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.reviewsService.remove(id, sub, role === 'admin');
   }
 }

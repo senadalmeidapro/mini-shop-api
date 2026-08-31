@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cart } from './entities/cart.entity';
@@ -29,6 +34,9 @@ export class CartService {
 
     const existingProduct = await this.product.findOneBy({ id: productId });
     if (!existingProduct) throw new NotFoundException('Product not found');
+    if (createCartItemDto.quantity > existingProduct.stock) {
+      throw new BadRequestException("Product stock isn't enought");
+    }
 
     const cartItem = this.cartItem.create({
       ...createCartItemDto,

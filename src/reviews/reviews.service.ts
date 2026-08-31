@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -46,17 +46,25 @@ export class ReviewsService {
     return existingReview;
   }
 
-  async update(id: string, updateReviewDto: UpdateReviewDto) {
+  async update(id: string, updateReviewDto: UpdateReviewDto, userId: string) {
     const existingReview = await this.review.findOneBy({ id });
     if (!existingReview) throw new NotFoundException('Review not found');
+
+    if (existingReview.userId != userId) {
+      throw new ForbiddenException('You are not the owner of this review');
+    }
 
     await this.review.update(id, updateReviewDto);
     return await this.review.findOneBy({ id });
   }
 
-  async remove(id: string) {
+  async remove(id: string, userId: string, admin: boolean = false) {
     const existingReview = await this.review.findOneBy({ id });
     if (!existingReview) throw new NotFoundException('Review not found');
+
+    if (!admin && existingReview.userId != userId) {
+      throw new ForbiddenException('You are not the owner of this review');
+    }
 
     return await this.review.delete(id);
   }

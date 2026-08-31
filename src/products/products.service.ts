@@ -21,7 +21,7 @@ export class ProductsService {
     if (!existingCategory) throw new NotFoundException('Category not found');
 
     const product = this.product.create({ ...createProductDto, category: existingCategory });
-    return await this.category.save(product);
+    return await this.product.save(product);
   }
 
   async findAll() {

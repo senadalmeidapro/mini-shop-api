@@ -14,7 +14,7 @@ export class CategoriesService {
 
   async create(createCategoryDto: CreateCategoryDto) {
     const existingCategory = await this.categry.findOneBy({ slug: createCategoryDto.slug });
-    if (!existingCategory) throw new ConflictException('This product slug is already in use');
+    if (existingCategory) throw new ConflictException('This product slug is already in use');
 
     const category = this.categry.create(createCategoryDto);
     return await this.categry.save(category);

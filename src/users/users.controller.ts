@@ -24,29 +24,29 @@ export class UsersController {
   @Get(':id')
   findOne(
     @Param('id') id: string,
-    @currentUser('sub') actorId: string,
-    @currentUser('role') actorRole: 'user' | 'admin',
+    @currentUser('sub') userId: string,
+    @currentUser('role') role: 'user' | 'admin',
   ) {
-    return this.userService.findOne(id, actorId, actorRole);
+    return this.userService.findOne(id, userId, role === 'admin');
   }
 
   @Patch(':id')
   update(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
-    @currentUser('sub') actorId: string,
-    @currentUser('role') actorRole: 'user' | 'admin',
+    @currentUser('sub') userId: string,
+    @currentUser('role') role: 'user' | 'admin',
   ) {
-    return this.userService.update(id, updateUserDto, actorId, actorRole);
+    return this.userService.update(id, updateUserDto, userId, role === 'admin');
   }
 
   @Delete(':id')
   remove(
     @Param('id') id: string,
-    @currentUser('sub') actorId: string,
-    @currentUser('role') actorRole: 'user' | 'admin',
+    @currentUser('sub') userId: string,
+    @currentUser('role') role: 'user' | 'admin',
   ) {
-    return this.userService.remove(id, actorId, actorRole);
+    return this.userService.remove(id, userId, role === 'admin');
   }
 
   @Post('address')

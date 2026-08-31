@@ -1,11 +1,8 @@
-import { IsDecimal, IsEnum } from 'class-validator';
+import { IsEnum } from 'class-validator';
 
 export class CreatePaymentDto {
-  @IsDecimal()
-  amount!: number;
-
-  @IsEnum(['pending', 'succeeded', 'failed', 'cancelled'])
-  status: 'pending' | 'succeeded' | 'failed' | 'cancelled' = 'pending';
+  @IsEnum(['pending', 'succeeded', 'failed'])
+  status: 'pending' | 'succeeded' | 'failed' = 'pending';
 
   @IsEnum(['card', 'paypal', 'crypto'])
   method!: 'card' | 'paypal' | 'crypto';

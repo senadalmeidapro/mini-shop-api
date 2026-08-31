@@ -30,7 +30,7 @@ export class UsersService {
     }
 
     dto.password = await bcrypt.hash(dto.password, 10);
-    const user = this.user.create({ ...dto, role: 'user', cart: {} });
+    const user = this.user.create({ ...dto, role: 'user' });
     return await this.user.save(user);
   }
 
@@ -38,15 +38,15 @@ export class UsersService {
     return await this.user.find();
   }
 
-  async findOne(id: string, actorId?: string, actorRole?: 'user' | 'admin') {
-    if (actorRole !== 'admin' && actorId !== id) throw new ForbiddenException('Access forbidden');
+  async findOne(id: string, userId?: string, admin: boolean = false) {
+    if (admin && userId !== id) throw new ForbiddenException('Access forbidden');
     const user = await this.user.findOneBy({ id });
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
 
-  async update(id: string, dto: UpdateUserDto, actorId?: string, actorRole?: 'user' | 'admin') {
-    if (actorRole !== 'admin' && actorId !== id) throw new ForbiddenException('Access forbidden');
+  async update(id: string, dto: UpdateUserDto, userId?: string, admin: boolean = false) {
+    if (admin && userId !== id) throw new ForbiddenException('Access forbidden');
     const existing = await this.user.findOneBy({ id });
     if (!existing) {
       throw new NotFoundException('User not found');
@@ -60,11 +60,11 @@ export class UsersService {
       ...dto,
       ...(dto.password ? { token: undefined } : {}),
     });
-    return await this.findOne(id, actorId, actorRole);
+    return await this.findOne(id, userId, admin);
   }
 
-  async remove(id: string, actorId?: string, actorRole?: 'user' | 'admin') {
-    if (actorRole !== 'admin' && actorId !== id) throw new ForbiddenException('Access forbidden');
+  async remove(id: string, userId?: string, admin: boolean = false) {
+    if (admin && userId !== id) throw new ForbiddenException('Access forbidden');
     const existing = await this.user.findOneBy({ id });
     if (!existing) {
       throw new NotFoundException('User not found');
@@ -87,20 +87,26 @@ export class UsersService {
     return await this.address.findBy({ userId });
   }
 
-  async updateAddress(addressId: string, dto: AddressDto) {
+  async updateAddress(addressId: string, dto: AddressDto, userId: string) {
+    const existing = await this.address.findOneBy({ id: addressId });
+    if (!existing) {
+      throw new NotFoundException('Address not found');
+    }
+    if (existing.userId !== userId) {
+      throw new ForbiddenException('You are not the owner of this address');
+    }
+    await this.address.update(addressId, dto);
+    return await this.address.findOneBy({ id: addressId });
+  }
+
+  async deleteAddress(addressId: string, userId: string) {
     const existing = await this.address.findOneBy({ id: addressId });
     if (!existing) {
       throw new NotFoundException('Address not found');
     }
 
-    await this.address.update(addressId, dto);
-    return await this.address.findOneBy({ id: addressId });
-  }
-
-  async deleteAddress(addressId: string) {
-    const existing = await this.address.findOneBy({ id: addressId });
-    if (!existing) {
-      throw new NotFoundException('Address not found');
+    if (existing.userId !== userId) {
+      throw new ForbiddenException('You are not the owner of this address');
     }
 
     return await this.address.delete(addressId);

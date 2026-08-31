@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { currentUser } from '../common/decorators';
@@ -7,13 +7,13 @@ import { currentUser } from '../common/decorators';
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
-  @Post(':orderId')
+  @Post(':cartId')
   create(
     @currentUser('sub') sub: string,
-    @Param('orderId') orderId: string,
+    @Param('cartId', ParseUUIDPipe) cartId: string,
     @Body() createPaymentDto: CreatePaymentDto,
   ) {
-    return this.paymentsService.create(sub, orderId, createPaymentDto);
+    return this.paymentsService.create(sub, cartId, createPaymentDto);
   }
 
   @Get()
@@ -22,17 +22,29 @@ export class PaymentsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.paymentsService.findOne(id);
+  findOne(
+    @currentUser('sub') sub: string,
+    @currentUser('role') role: 'user' | 'admin',
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.paymentsService.findOne(id, sub, role === 'admin');
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePaymentDto: Pick<CreatePaymentDto, 'status'>) {
-    return this.paymentsService.update(id, updatePaymentDto);
+  update(
+    @currentUser('sub') sub: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updatePaymentDto: CreatePaymentDto,
+  ) {
+    return this.paymentsService.update(id, updatePaymentDto, sub);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.paymentsService.cancel(id);
+  remove(
+    @currentUser('sub') sub: string,
+    @currentUser('role') role: 'user' | 'admin',
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.paymentsService.cancel(id, sub, role === 'admin');
   }
 }

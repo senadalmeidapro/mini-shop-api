@@ -12,7 +12,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/config/typeorm.ts",
+    "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/config/typeorm.ts migrations/Init",
     "migration:create": "typeorm-ts-node-commonjs migration:create",
     "migration:run": "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
     "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts",

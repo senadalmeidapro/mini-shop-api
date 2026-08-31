@@ -1,17 +1,17 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class InitialSchema1787846774557 implements MigrationInterface {
-  name = 'InitialSchema1787846774557';
+export class Init1788185728557 implements MigrationInterface {
+  name = 'Init1788185728557';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `CREATE TABLE "category" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying(255) NOT NULL, "slug" character varying(255) NOT NULL, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_cb73208f151aa71cdd78f662d70" UNIQUE ("slug"), CONSTRAINT "PK_9c4e4a89e3674fc9f382d733f03" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "review" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "user_id" uuid NOT NULL, "product_id" uuid NOT NULL, "rating" integer NOT NULL, "comment" text, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_2e4299a343a81574217255c00ca" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "review" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "user_id" uuid NOT NULL, "product_id" uuid NOT NULL, "rating" integer, "comment" text, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_2e4299a343a81574217255c00ca" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "cart" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "user_id" uuid NOT NULL, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_c524ec48751b9b5bcfbf6e59be7" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "cart" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "user_id" uuid NOT NULL, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "REL_f091e86a234693a49084b4c2c8" UNIQUE ("user_id"), CONSTRAINT "PK_c524ec48751b9b5bcfbf6e59be7" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "cart_item" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "cart_id" uuid NOT NULL, "product_id" uuid NOT NULL, "quantity" integer NOT NULL, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_bd94725aa84f8cf37632bcde997" PRIMARY KEY ("id"))`,
@@ -143,7 +143,7 @@ export class InitialSchema1787846774557 implements MigrationInterface {
       `ALTER TYPE "public"."payment_status_enum" RENAME TO "payment_status_enum_old"`,
     );
     await queryRunner.query(
-      `CREATE TYPE "public"."payment_status_enum" AS ENUM('pending', 'succeeded', 'failed')`,
+      `CREATE TYPE "public"."payment_status_enum" AS ENUM('pending', 'succeeded', 'failed', 'cancelled')`,
     );
     await queryRunner.query(`ALTER TABLE "payment" ALTER COLUMN "status" DROP DEFAULT`);
     await queryRunner.query(
@@ -151,9 +151,16 @@ export class InitialSchema1787846774557 implements MigrationInterface {
     );
     await queryRunner.query(`ALTER TABLE "payment" ALTER COLUMN "status" SET DEFAULT 'pending'`);
     await queryRunner.query(`DROP TYPE "public"."payment_status_enum_old"`);
-    await queryRunner.query(`ALTER TABLE "payment" DROP COLUMN "method"`);
-    await queryRunner.query(`DROP TYPE "public"."payment_method_enum"`);
-    await queryRunner.query(`ALTER TABLE "payment" ADD "method" character varying NOT NULL`);
+    await queryRunner.query(
+      `ALTER TYPE "public"."payment_method_enum" RENAME TO "payment_method_enum_old"`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "public"."payment_method_enum" AS ENUM('card', 'paypal', 'crypto')`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "payment" ALTER COLUMN "method" TYPE "public"."payment_method_enum" USING "method"::"text"::"public"."payment_method_enum"`,
+    );
+    await queryRunner.query(`DROP TYPE "public"."payment_method_enum_old"`);
     await queryRunner.query(
       `ALTER TABLE "address" ADD CONSTRAINT "FK_35cd6c3fafec0bb5d072e24ea20" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
     );
@@ -219,12 +226,15 @@ export class InitialSchema1787846774557 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "address" DROP CONSTRAINT "FK_35cd6c3fafec0bb5d072e24ea20"`,
     );
-    await queryRunner.query(`ALTER TABLE "payment" DROP COLUMN "method"`);
     await queryRunner.query(
-      `CREATE TYPE "public"."payment_method_enum" AS ENUM('card', 'paypal', 'stripe')`,
+      `CREATE TYPE "public"."payment_method_enum_old" AS ENUM('card', 'paypal', 'stripe')`,
     );
     await queryRunner.query(
-      `ALTER TABLE "payment" ADD "method" "public"."payment_method_enum" NOT NULL`,
+      `ALTER TABLE "payment" ALTER COLUMN "method" TYPE "public"."payment_method_enum_old" USING "method"::"text"::"public"."payment_method_enum_old"`,
+    );
+    await queryRunner.query(`DROP TYPE "public"."payment_method_enum"`);
+    await queryRunner.query(
+      `ALTER TYPE "public"."payment_method_enum_old" RENAME TO "payment_method_enum"`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."payment_status_enum_old" AS ENUM('pending', 'canceled', 'completed')`,

@@ -24,7 +24,7 @@ export class AuthService {
     }
 
     dto.password = await bcrypt.hash(dto.password, 10);
-    const user = this.user.create(dto);
+    const user = this.user.create({ ...dto, cart: {} });
     await this.user.save(user);
     return 'Registration success';
   }
@@ -56,7 +56,7 @@ export class AuthService {
     const user = await this.user.findOneBy({ id: userId });
     if (!user) throw new UnauthorizedException('');
 
-    await this.user.update(user.id, { token: null });
+    await this.user.update(user.id, { token: undefined });
     return { message: 'Logged out. Discard your access token client-side.' };
   }
 }

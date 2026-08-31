@@ -3,6 +3,7 @@ import {
   CreateDateColumn,
   Entity,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -29,7 +30,7 @@ export class User {
   role!: 'user' | 'admin';
 
   @Column({ nullable: true, select: false })
-  token?: string | null;
+  token?: string;
 
   @OneToMany(() => Address, (addresses) => addresses.user, {
     cascade: true,
@@ -37,11 +38,11 @@ export class User {
   })
   addresses!: Address[];
 
-  @OneToMany(() => Cart, (carts) => carts.user, {
+  @OneToOne(() => Cart, (cart) => cart.user, {
     cascade: true,
     orphanedRowAction: 'delete',
   })
-  carts!: Cart[];
+  cart!: Cart;
 
   @OneToMany(() => Order, (order) => order.user, {
     cascade: true,

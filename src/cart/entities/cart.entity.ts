@@ -3,8 +3,8 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
-  ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -19,7 +19,7 @@ export class Cart {
   @Column({ name: 'user_id' })
   userId!: string;
 
-  @ManyToOne(() => User, (user) => user.carts, {
+  @OneToOne(() => User, (user) => user.cart, {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
   })

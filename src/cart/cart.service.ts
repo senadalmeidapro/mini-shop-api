@@ -1,26 +1,83 @@
-import { Injectable } from '@nestjs/common';
-import { CreateCartDto } from './dto/create-cart.dto';
-import { UpdateCartDto } from './dto/update-cart.dto';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Cart } from './entities/cart.entity';
+import { CartItem } from './entities/cart-item.entity';
+import { Product } from '../products/entities/product.entity';
+import { CreateCartItemDto } from './dto/create-cart-item.dto';
+import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 
 @Injectable()
 export class CartService {
-  create(createCartDto: CreateCartDto) {
-    return 'This action adds a new cart';
+  constructor(
+    @InjectRepository(Cart)
+    private readonly cart: Repository<Cart>,
+
+    @InjectRepository(Product)
+    private readonly product: Repository<Product>,
+
+    @InjectRepository(CartItem)
+    private readonly cartItem: Repository<CartItem>,
+  ) {}
+
+  async addCartItem(userId: string, productId: string, createCartItemDto: CreateCartItemDto) {
+    let cart = await this.cart.findOneBy({ userId });
+    if (!cart) {
+      const cartCreate = this.cart.create({ userId });
+      cart = await this.cart.save(cartCreate);
+    }
+
+    const existingProduct = await this.product.findOneBy({ id: productId });
+    if (!existingProduct) throw new NotFoundException('Product not found');
+
+    const cartItem = this.cartItem.create({
+      ...createCartItemDto,
+      cart,
+      product: existingProduct,
+      quantity: createCartItemDto.quantity,
+    });
+    return await this.cartItem.save(cartItem);
   }
 
-  findAll() {
-    return `This action returns all cart`;
+  async findAllCart() {
+    return await this.cart.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} cart`;
+  async findOneCart(id: string, userId: string) {
+    const existingCart = await this.cart.findOneBy({ id });
+    if (!existingCart) throw new NotFoundException('Cart not found');
+
+    if (existingCart.userId != userId)
+      throw new ForbiddenException('You are not the owner of this cart');
+    return existingCart;
   }
 
-  update(id: number, updateCartDto: UpdateCartDto) {
-    return `This action updates a #${id} cart`;
+  async updateCartItem(id: string, updateCartItemDto: UpdateCartItemDto, userId: string) {
+    const existingCartItem = await this.cartItem.findOne({
+      where: { id },
+      relations: { cart: true },
+    });
+    if (!existingCartItem) throw new NotFoundException('Cart item not found');
+
+    if (existingCartItem.cart.userId != userId) {
+      throw new ForbiddenException('You are not the owner of this cart');
+    }
+
+    await this.cartItem.update(id, updateCartItemDto);
+    return await this.cart.findOneBy({ id: existingCartItem.cart.id });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} cart`;
+  async remove(id: string, userId: string) {
+    const existingCartItem = await this.cartItem.findOne({
+      where: { id },
+      relations: { cart: true },
+    });
+    if (!existingCartItem) throw new NotFoundException('Cart item not found');
+
+    if (existingCartItem.cart.userId != userId) {
+      throw new ForbiddenException('You are not the owner of this cart');
+    }
+
+    return await this.cartItem.delete(id);
   }
 }

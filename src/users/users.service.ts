@@ -30,7 +30,7 @@ export class UsersService {
     }
 
     dto.password = await bcrypt.hash(dto.password, 10);
-    const user = this.user.create({ ...dto, role: 'user' });
+    const user = this.user.create({ ...dto, role: 'user', cart: {} });
     return await this.user.save(user);
   }
 
@@ -58,7 +58,7 @@ export class UsersService {
 
     await this.user.update(id, {
       ...dto,
-      ...(dto.password ? { token: null } : {}),
+      ...(dto.password ? { token: undefined } : {}),
     });
     return await this.findOne(id, actorId, actorRole);
   }

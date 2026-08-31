@@ -8,10 +8,10 @@ import { currentUser } from '../common/decorators';
 export class CartController {
   constructor(private readonly cartService: CartService) {}
 
-  @Post()
+  @Post(':productId')
   create(
     @currentUser('sub') sub: string,
-    @Param('productId') productId: string,
+    @Param('productId', ParseUUIDPipe) productId: string,
     @Body() createCartItemDto: CreateCartItemDto,
   ) {
     return this.cartService.addCartItem(sub, productId, createCartItemDto);

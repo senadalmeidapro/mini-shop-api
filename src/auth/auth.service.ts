@@ -56,7 +56,7 @@ export class AuthService {
     const user = await this.user.findOneBy({ id: userId });
     if (!user) throw new UnauthorizedException('');
 
-    await this.user.update(user.id, { token: undefined });
+    await this.user.update(user.id, { token: null });
     return { message: 'Logged out. Discard your access token client-side.' };
   }
 }

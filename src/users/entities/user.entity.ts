@@ -29,8 +29,8 @@ export class User {
   @Column({ type: 'enum', enum: ['user', 'admin'], default: 'user' })
   role!: 'user' | 'admin';
 
-  @Column({ nullable: true, select: false })
-  token?: string;
+  @Column({ type: 'varchar', nullable: true, select: false })
+  token?: string | null;
 
   @OneToMany(() => Address, (addresses) => addresses.user, {
     cascade: true,

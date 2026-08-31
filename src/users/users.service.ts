@@ -39,7 +39,7 @@ export class UsersService {
   }
 
   async findOne(id: string, userId?: string, admin: boolean = false) {
-    if (admin && userId !== id) throw new ForbiddenException('Access forbidden');
+    if (!admin && userId !== id) throw new ForbiddenException('Access forbidden');
     const user = await this.user.findOneBy({ id });
     if (!user) throw new NotFoundException('User not found');
     return user;
@@ -58,7 +58,7 @@ export class UsersService {
 
     await this.user.update(id, {
       ...dto,
-      ...(dto.password ? { token: undefined } : {}),
+      ...(dto.password ? { token: null } : {}),
     });
     return await this.findOne(id, userId, admin);
   }

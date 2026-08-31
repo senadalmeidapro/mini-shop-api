@@ -19,8 +19,12 @@ export class OrdersController {
   }
 
   @Get(':id')
-  findOne(@currentUser('sub') sub: string, @Param('id') id: string) {
-    return this.ordersService.findOne(id, sub);
+  findOne(
+    @currentUser('sub') sub: string,
+    @currentUser('role') role: 'user' | 'admin',
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.ordersService.findOne(id, sub, role === 'admin');
   }
 
   @Patch(':id')

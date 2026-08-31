@@ -38,7 +38,7 @@ export class PaymentsService {
       relations: { cartItems: { product: true } },
     });
     if (!existingCart) throw new NotFoundException('Order not found');
-    if (userId != existingCart.userId) {
+    if (userId !== existingCart.userId) {
       throw new ForbiddenException('You are not the owner of this order');
     }
 
@@ -80,8 +80,8 @@ export class PaymentsService {
     });
     if (!existingPayment) throw new NotFoundException('Payment not found');
 
-    if (!admin && existingPayment.order.userId != userId) {
-      throw new ForbiddenException('You are not the owner of ths payment');
+    if (!admin && existingPayment.order.userId !== userId) {
+      throw new ForbiddenException('You are not the owner of this payment');
     }
 
     return existingPayment;
@@ -94,8 +94,8 @@ export class PaymentsService {
     });
     if (!existingPayment) throw new NotFoundException('Payment not found');
 
-    if (existingPayment.order.userId != userId) {
-      throw new ForbiddenException('You are not the owner of ths payment');
+    if (existingPayment.order.userId !== userId) {
+      throw new ForbiddenException('You are not the owner of this payment');
     }
 
     if (['succeeded', 'cancelled'].includes(existingPayment.status)) {
@@ -113,8 +113,8 @@ export class PaymentsService {
     });
     if (!existingPayment) throw new NotFoundException('Payment not found');
 
-    if (!admin && existingPayment.order.userId != userId) {
-      throw new ForbiddenException('You are not the owner of ths payment');
+    if (!admin && existingPayment.order.userId !== userId) {
+      throw new ForbiddenException('You are not the owner of this payment');
     }
 
     if (['succeeded', 'cancelled'].includes(existingPayment.status)) {

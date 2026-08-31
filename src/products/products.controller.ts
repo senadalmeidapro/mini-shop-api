@@ -9,7 +9,10 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post(':categoryId')
-  create(@Param('categoryId') categoryId: string, @Body() createProductDto: CreateProductDto) {
+  create(
+    @Param('categoryId', ParseUUIDPipe) categoryId: string,
+    @Body() createProductDto: CreateProductDto,
+  ) {
     return this.productsService.create(categoryId, createProductDto);
   }
 

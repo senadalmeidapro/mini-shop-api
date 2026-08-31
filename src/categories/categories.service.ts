@@ -25,11 +25,10 @@ export class CategoriesService {
   }
 
   async findOne(slug: string) {
-    const category = await this.categry
-      .createQueryBuilder('category')
-      .innerJoin('category.products', 'product')
-      .where('category.slug = :slug', { slug })
-      .getOne();
+    const category = await this.categry.findOne({
+      where: { slug },
+      relations: { products: true },
+    });
 
     if (!category) throw new NotFoundException(`Category ${slug} not found.`);
     return category;

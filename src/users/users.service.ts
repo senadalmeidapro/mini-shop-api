@@ -46,7 +46,7 @@ export class UsersService {
   }
 
   async update(id: string, dto: UpdateUserDto, userId?: string, admin: boolean = false) {
-    if (admin && userId !== id) throw new ForbiddenException('Access forbidden');
+    if (!admin && userId !== id) throw new ForbiddenException('Access forbidden');
     const existing = await this.user.findOneBy({ id });
     if (!existing) {
       throw new NotFoundException('User not found');
@@ -64,7 +64,7 @@ export class UsersService {
   }
 
   async remove(id: string, userId?: string, admin: boolean = false) {
-    if (admin && userId !== id) throw new ForbiddenException('Access forbidden');
+    if (!admin && userId !== id) throw new ForbiddenException('Access forbidden');
     const existing = await this.user.findOneBy({ id });
     if (!existing) {
       throw new NotFoundException('User not found');

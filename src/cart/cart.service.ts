@@ -4,8 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Cart } from './entities/cart.entity';
 import { CartItem } from './entities/cart-item.entity';
 import { Product } from '../products/entities/product.entity';
@@ -23,28 +23,39 @@ export class CartService {
 
     @InjectRepository(CartItem)
     private readonly cartItem: Repository<CartItem>,
+
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {}
 
   async addCartItem(userId: string, productId: string, createCartItemDto: CreateCartItemDto) {
-    let cart = await this.cart.findOneBy({ userId });
-    if (!cart) {
-      const cartCreate = this.cart.create({ userId });
-      cart = await this.cart.save(cartCreate);
-    }
+    return this.dataSource.transaction(async (manager) => {
+      let cart = await manager.findOne(Cart, { where: { userId } });
+      if (!cart) {
+        cart = manager.create(Cart, { userId });
+        cart = await manager.save(Cart, cart);
+      }
 
-    const existingProduct = await this.product.findOneBy({ id: productId });
-    if (!existingProduct) throw new NotFoundException('Product not found');
-    if (createCartItemDto.quantity > existingProduct.stock) {
-      throw new BadRequestException("Product stock isn't enought");
-    }
+      const existingProduct = await manager.findOne(Product, {
+        where: { id: productId },
+      });
+      if (!existingProduct) throw new NotFoundException('Product not found');
 
-    const cartItem = this.cartItem.create({
-      ...createCartItemDto,
-      cart,
-      product: existingProduct,
-      quantity: createCartItemDto.quantity,
+      if (createCartItemDto.quantity > existingProduct.stock) {
+        throw new BadRequestException("Product stock isn't enough");
+      }
+
+      const cartItem = manager.create(CartItem, {
+        ...createCartItemDto,
+        cart,
+        product: existingProduct,
+      });
+
+      const savedItem = await manager.save(CartItem, cartItem);
+
+      await manager.decrement(Product, { id: productId }, 'stock', createCartItemDto.quantity);
+      return savedItem;
     });
-    return await this.cartItem.save(cartItem);
   }
 
   async findAllCart() {
@@ -55,7 +66,7 @@ export class CartService {
     const existingCart = await this.cart.findOneBy({ id });
     if (!existingCart) throw new NotFoundException('Cart not found');
 
-    if (existingCart.userId != userId)
+    if (existingCart.userId !== userId)
       throw new ForbiddenException('You are not the owner of this cart');
     return existingCart;
   }
@@ -67,7 +78,7 @@ export class CartService {
     });
     if (!existingCartItem) throw new NotFoundException('Cart item not found');
 
-    if (existingCartItem.cart.userId != userId) {
+    if (existingCartItem.cart.userId !== userId) {
       throw new ForbiddenException('You are not the owner of this cart');
     }
 
@@ -82,7 +93,7 @@ export class CartService {
     });
     if (!existingCartItem) throw new NotFoundException('Cart item not found');
 
-    if (existingCartItem.cart.userId != userId) {
+    if (existingCartItem.cart.userId !== userId) {
       throw new ForbiddenException('You are not the owner of this cart');
     }
 

@@ -50,7 +50,7 @@ export class ReviewsService {
     const existingReview = await this.review.findOneBy({ id });
     if (!existingReview) throw new NotFoundException('Review not found');
 
-    if (existingReview.userId != userId) {
+    if (existingReview.userId !== userId) {
       throw new ForbiddenException('You are not the owner of this review');
     }
 
@@ -62,7 +62,7 @@ export class ReviewsService {
     const existingReview = await this.review.findOneBy({ id });
     if (!existingReview) throw new NotFoundException('Review not found');
 
-    if (!admin && existingReview.userId != userId) {
+    if (!admin && existingReview.userId !== userId) {
       throw new ForbiddenException('You are not the owner of this review');
     }
 

@@ -49,7 +49,9 @@ export class AuthService {
     );
 
     await this.user.update(user.id, { token });
-    return token;
+    const signedUser: { id: string; email: string; fullName?: string } | null =
+      await this.user.findOneBy({ id: user.id });
+    return { token, user: signedUser };
   }
 
   async logout(userId: string) {

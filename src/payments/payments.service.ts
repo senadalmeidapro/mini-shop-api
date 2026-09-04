@@ -6,9 +6,9 @@ import {
 } from '@nestjs/common';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Order } from '../orders/entities/order.entity';
+import { Order, OrderStatus } from '../orders/entities/order.entity';
 import { Repository } from 'typeorm';
-import { Payment } from './entities/payment.entity';
+import { Payment, PaymentStatus } from './entities/payment.entity';
 import { Cart } from '../cart/entities/cart.entity';
 import { OrdersService } from '../orders/orders.service';
 import { CreateOrderDto } from '../orders/dto/create-order.dto';
@@ -48,7 +48,7 @@ export class PaymentsService {
     );
 
     const orderDto: CreateOrderDto = {
-      status: 'pending',
+      status: OrderStatus.PENDING,
       total,
       orderItems: existingCart.cartItems.map((ci) => ({
         productId: ci.productId,
@@ -98,7 +98,7 @@ export class PaymentsService {
       throw new ForbiddenException('You are not the owner of this payment');
     }
 
-    if (['succeeded', 'cancelled'].includes(existingPayment.status)) {
+    if ([PaymentStatus.SUCCEEDED, PaymentStatus.CANCELLED].includes(existingPayment.status)) {
       throw new BadRequestException('Invalid payment');
     }
 
@@ -117,11 +117,11 @@ export class PaymentsService {
       throw new ForbiddenException('You are not the owner of this payment');
     }
 
-    if (['succeeded', 'cancelled'].includes(existingPayment.status)) {
+    if ([PaymentStatus.SUCCEEDED, PaymentStatus.CANCELLED].includes(existingPayment.status)) {
       throw new BadRequestException('Invalid payment');
     }
 
     await this.orderService.cancelOrder(existingPayment.orderId);
-    return await this.payment.update(id, { status: 'cancelled' });
+    return await this.payment.update(id, { status: PaymentStatus.CANCELLED });
   }
 }

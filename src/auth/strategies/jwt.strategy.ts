@@ -6,7 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { Request } from 'express';
-import { User } from '../../users/entities/user.entity';
+import { User, UserRole } from '../../users/entities/user.entity';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -22,7 +22,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  async validate(request: Request, payload: { sub: string; role?: 'user' | 'admin' }) {
+  async validate(request: Request, payload: { sub: string; role?: UserRole }) {
     const token = ExtractJwt.fromAuthHeaderAsBearerToken()(request);
     const user = await this.users
       .createQueryBuilder('user')

@@ -9,6 +9,19 @@ import {
 } from 'typeorm';
 import { Order } from '../../orders/entities/order.entity';
 
+export enum PaymentStatus {
+  PENDING = 'pending',
+  SUCCEEDED = 'succeeded',
+  FAILED = 'failed',
+  CANCELLED = 'cancelled',
+}
+
+export enum PaymentMethod {
+  CARD = 'card',
+  PAYPAL = 'paypal',
+  CRYPTO = 'crypto',
+}
+
 @Entity()
 export class Payment {
   @PrimaryGeneratedColumn('uuid')
@@ -22,13 +35,13 @@ export class Payment {
 
   @Column({
     type: 'enum',
-    enum: ['pending', 'succeeded', 'failed', 'cancelled'],
-    default: 'pending',
+    enum: PaymentStatus,
+    default: PaymentStatus.PENDING,
   })
-  status!: 'pending' | 'succeeded' | 'failed' | 'cancelled';
+  status!: PaymentStatus;
 
-  @Column({ type: 'enum', enum: ['card', 'paypal', 'crypto'] })
-  method!: 'card' | 'paypal' | 'crypto';
+  @Column({ type: 'enum', enum: PaymentMethod })
+  method!: PaymentMethod;
 
   @Column({ name: 'transaction_id', nullable: true })
   transactionId?: string;

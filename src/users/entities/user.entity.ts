@@ -12,6 +12,11 @@ import { Cart } from '../../cart/entities/cart.entity';
 import { Review } from '../../reviews/entities/review.entity';
 import { Order } from '../../orders/entities/order.entity';
 
+export enum UserRole {
+  USER = 'user',
+  ADMIN = 'admin',
+}
+
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -23,11 +28,11 @@ export class User {
   @Column({ select: false })
   password!: string;
 
-  @Column({ name: 'full_name', nullable: true, length: 255 })
+  @Column({ type: 'varchar', name: 'full_name', nullable: true, length: 255 })
   fullName?: string;
 
-  @Column({ type: 'enum', enum: ['user', 'admin'], default: 'user' })
-  role!: 'user' | 'admin';
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
+  role!: UserRole;
 
   @Column({ type: 'varchar', nullable: true, select: false })
   token?: string | null;

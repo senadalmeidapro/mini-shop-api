@@ -1,9 +1,10 @@
 import { IsDecimal, IsEnum } from 'class-validator';
+import { OrderStatus } from '../entities/order.entity';
 import { CreateOrderItemDto } from './create-order-item.dto';
 
 export class CreateOrderDto {
-  @IsEnum(['pending', 'cancelled', 'completed'])
-  status: 'pending' | 'cancelled' | 'completed' = 'pending';
+  @IsEnum([OrderStatus.PENDING, OrderStatus.CANCELLED, OrderStatus.COMPLETED])
+  status: OrderStatus = OrderStatus.PENDING;
 
   @IsDecimal()
   total!: number;

@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class Init1788187288708 implements MigrationInterface {
-    name = 'Init1788187288708'
+export class Init1788548077168 implements MigrationInterface {
+    name = 'Init1788548077168'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "category" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying(255) NOT NULL, "slug" character varying(255) NOT NULL, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_cb73208f151aa71cdd78f662d70" UNIQUE ("slug"), CONSTRAINT "PK_9c4e4a89e3674fc9f382d733f03" PRIMARY KEY ("id"))`);
@@ -41,7 +41,7 @@ export class Init1788187288708 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "order" DROP COLUMN "user_id"`);
         await queryRunner.query(`ALTER TABLE "order" ADD "user_id" uuid NOT NULL`);
         await queryRunner.query(`ALTER TYPE "public"."order_status_enum" RENAME TO "order_status_enum_old"`);
-        await queryRunner.query(`CREATE TYPE "public"."order_status_enum" AS ENUM('pending', 'cancelled', 'completed')`);
+        await queryRunner.query(`CREATE TYPE "public"."order_status_enum" AS ENUM('pending', 'completed', 'cancelled')`);
         await queryRunner.query(`ALTER TABLE "order" ALTER COLUMN "status" DROP DEFAULT`);
         await queryRunner.query(`ALTER TABLE "order" ALTER COLUMN "status" TYPE "public"."order_status_enum" USING "status"::"text"::"public"."order_status_enum"`);
         await queryRunner.query(`ALTER TABLE "order" ALTER COLUMN "status" SET DEFAULT 'pending'`);

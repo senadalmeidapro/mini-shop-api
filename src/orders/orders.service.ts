@@ -7,7 +7,7 @@ import {
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { Order } from './entities/order.entity';
+import { Order, OrderStatus } from './entities/order.entity';
 import { DataSource, Repository } from 'typeorm';
 import { Product } from '../products/entities/product.entity';
 
@@ -57,7 +57,7 @@ export class OrdersService {
       throw new ForbiddenException('You are not the owner of this order');
     }
 
-    if (existingOrder.status !== 'pending') {
+    if (existingOrder.status !== OrderStatus.PENDING) {
       throw new BadRequestException('Only pending orders can be updated');
     }
 
@@ -73,7 +73,7 @@ export class OrdersService {
       });
       if (!existingOrder) throw new NotFoundException('Order not found');
 
-      if (existingOrder.status !== 'pending') {
+      if (existingOrder.status !== OrderStatus.PENDING) {
         throw new BadRequestException('Only pending orders can be cancelled');
       }
 
@@ -81,7 +81,7 @@ export class OrdersService {
         await manager.increment(Product, { id: item.productId }, 'stock', item.quantity);
       }
 
-      existingOrder.status = 'cancelled';
+      existingOrder.status = OrderStatus.CANCELLED;
       return manager.save(Order, existingOrder);
     });
   }

@@ -1,9 +1,10 @@
 import { IsEnum } from 'class-validator';
+import { PaymentMethod, PaymentStatus } from '../entities/payment.entity';
 
 export class CreatePaymentDto {
-  @IsEnum(['pending', 'succeeded', 'failed'])
-  status: 'pending' | 'succeeded' | 'failed' = 'pending';
+  @IsEnum([PaymentStatus.PENDING, PaymentStatus.SUCCEEDED, PaymentStatus.FAILED])
+  status: PaymentStatus = PaymentStatus.PENDING;
 
-  @IsEnum(['card', 'paypal', 'crypto'])
-  method!: 'card' | 'paypal' | 'crypto';
+  @IsEnum(PaymentMethod)
+  method!: PaymentMethod;
 }

@@ -4,6 +4,24 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.enableCors({
+    origin: ['http://localhost:5173'],
+    credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Authorization',
+      'Content-Type',
+      'Accept',
+      'Origin',
+      'X-Requested-With',
+      'X-Device-Id',
+      'X-Metrics-Token',
+    ],
+    exposedHeaders: ['Content-Disposition'],
+    maxAge: 600,
+    optionsSuccessStatus: 204,
+  });
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );

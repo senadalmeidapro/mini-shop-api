@@ -33,9 +33,9 @@ export class OrdersService {
 
   async findAll(admin: boolean = false, userId: string) {
     if (admin) {
-      return await this.order.find();
+      return await this.order.find({ relations: { user: true, orderItems: true } });
     }
-    return await this.order.find({ where: { userId } });
+    return await this.order.find({ where: { userId }, relations: { orderItems: true } });
   }
 
   async findOne(id: string, userId: string, admin: boolean = false) {

@@ -18,8 +18,8 @@ export async function seedReviews(ds: DataSource): Promise<Review[]> {
       rating: 3 + (index % 3),
       comment:
         index % 2 === 0
-          ? 'Great product, fast delivery and good quality.'
-          : 'Good value for money, I would buy it again.',
+          ? 'Super produit, bonne qualité livraison rapide.'
+          : "Bon prix, J'en voudrais encore.",
     })),
   );
 

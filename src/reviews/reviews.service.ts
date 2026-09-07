@@ -36,7 +36,7 @@ export class ReviewsService {
   }
 
   async findAll() {
-    return await this.review.find();
+    return await this.review.find({ relations: { user: true, product: true } });
   }
 
   async findOne(id: string) {

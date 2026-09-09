@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsNumber, IsString, Max, Min } from 'class-validator';
+import { IsInt, IsNumber, IsString, Max, Min } from 'class-validator';
 
 export class CreateProductDto {
   @IsString()
@@ -8,13 +8,14 @@ export class CreateProductDto {
   @IsString()
   description!: string;
 
+  @Transform(({ value }) => Number(value))
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Max(99999999.99)
-  @Transform((value) => Number(value).toFixed(2))
   price!: number;
 
-  @IsNumber()
+  @Transform(({ value }) => Number(value))
+  @IsInt()
   @Min(0)
   stock!: number;
 }

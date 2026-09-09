@@ -16,11 +16,15 @@ export class ProductsService {
     private readonly product: Repository<Product>,
   ) {}
 
-  async create(categoryId: string, createProductDto: CreateProductDto) {
+  async create(categoryId: string, createProductDto: CreateProductDto, imageUrl?: string) {
     const existingCategory = await this.category.findOneBy({ id: categoryId });
     if (!existingCategory) throw new NotFoundException('Category not found');
 
-    const product = this.product.create({ ...createProductDto, category: existingCategory });
+    const product = this.product.create({
+      ...createProductDto,
+      imageUrl,
+      category: existingCategory,
+    });
     return await this.product.save(product);
   }
 
@@ -35,11 +39,11 @@ export class ProductsService {
     return existingProduct;
   }
 
-  async update(id: string, updateProductDto: UpdateProductDto) {
+  async update(id: string, updateProductDto: UpdateProductDto, imageUrl?: string) {
     const existingProduct = await this.product.findOneBy({ id });
     if (!existingProduct) throw new NotFoundException('Product not found');
 
-    await this.product.update(id, updateProductDto);
+    await this.product.update(id, { ...updateProductDto, imageUrl });
     return await this.product.findOneBy({ id });
   }
 

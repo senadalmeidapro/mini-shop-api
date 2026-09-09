@@ -24,6 +24,9 @@ export class Product {
   @Column({ length: 255 })
   name!: string;
 
+  @Column({ type: 'varchar', name: 'image_url', nullable: true })
+  imageUrl?: string;
+
   @Column({ type: 'text' })
   description!: string;
 

@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
+import 'reflect-metadata';
+import 'dotenv/config';
 
 interface SendMailOptions {
   to: string;
@@ -18,8 +20,8 @@ export class MailService {
   constructor(private readonly config: ConfigService) {
     this.transporter = nodemailer.createTransport({
       host: this.config.get<string>('SMTP_HOST') ?? 'smtp-relay.brevo.com',
-      port: this.config.get<number>('SMTP_PORT') ?? 587,
-      secure: this.config.get<boolean>('SMTP_SECURE') ?? false,
+      port: Number(this.config.get<string>('SMTP_PORT') ?? 587),
+      secure: this.config.get<string>('SMTP_SECURE') === 'true',
       auth: {
         user: this.config.getOrThrow<string>('SMTP_USER'),
         pass: this.config.getOrThrow<string>('SMTP_PASSWORD'),

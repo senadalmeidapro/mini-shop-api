@@ -18,6 +18,7 @@ import { ShopsModule } from './shops/shops.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { EventsModule } from './events/events.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { APP_GUARD } from '@nestjs/core';
@@ -79,6 +80,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
     NotificationsModule,
     InvoicesModule,
     EventsModule,
+    DashboardModule,
   ],
 
   controllers: [AppController],

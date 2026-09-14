@@ -45,6 +45,15 @@ export class CartService {
         throw new BadRequestException("Product stock isn't enough");
       }
 
+      // Même produit déjà dans le panier : on incrémente la quantité (pas de doublon)
+      const existingItem = await manager.findOne(CartItem, {
+        where: { cart: { id: cart.id }, product: { id: existingProduct.id } },
+      });
+      if (existingItem) {
+        await manager.increment(CartItem, { id: existingItem.id }, 'quantity', createCartItemDto.quantity);
+        return await manager.findOneByOrFail(CartItem, { id: existingItem.id });
+      }
+
       const cartItem = manager.create(CartItem, {
         ...createCartItemDto,
         cart,
@@ -56,6 +65,17 @@ export class CartService {
       await manager.decrement(Product, { id: productId }, 'stock', createCartItemDto.quantity);
       return savedItem;
     });
+  }
+
+  async findMyCart(userId: string) {
+    const cart = await this.cart.findOne({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+      relations: { cartItems: { product: true } },
+    });
+    if (!cart) return null;
+    cart.cartItems.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    return cart;
   }
 
   async findAllCart() {

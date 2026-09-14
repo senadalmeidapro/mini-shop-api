@@ -17,6 +17,11 @@ export class CartController {
     return this.cartService.addCartItem(sub, productId, createCartItemDto);
   }
 
+  @Get('mine')
+  findMine(@currentUser('sub') sub: string) {
+    return this.cartService.findMyCart(sub);
+  }
+
   @Get()
   findAll() {
     return this.cartService.findAllCart();

@@ -8,8 +8,10 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
-import { DataSource, Repository } from 'typeorm';
+import { OrderItem } from './entities/order-item.entity';
+import { DataSource, In, Repository } from 'typeorm';
 import { Product } from '../products/entities/product.entity';
+import { Shop } from '../shops/entities/shop.entity';
 
 @Injectable()
 export class OrdersService {
@@ -17,52 +19,122 @@ export class OrdersService {
     @InjectRepository(Order)
     private readonly order: Repository<Order>,
 
+    @InjectRepository(OrderItem)
+    private readonly orderItem: Repository<OrderItem>,
+
     @InjectRepository(Product)
     private readonly product: Repository<Product>,
+
+    @InjectRepository(Shop)
+    private readonly shop: Repository<Shop>,
 
     @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {}
 
-  async create(createOrderDto: CreateOrderDto) {
+  async create(userId: string, createOrderDto: CreateOrderDto) {
     const { orderItems, ...data } = createOrderDto;
-    const order = this.order.create({ ...data, orderItems: orderItems.map((ci) => ({ ...ci })) });
-
+    const order = this.order.create({
+      ...data,
+      userId,
+      orderItems: orderItems.map((ci) => ({ ...ci })),
+    });
     return await this.order.save(order);
   }
 
-  async findAll(admin: boolean = false, userId: string) {
-    if (admin) {
+  async findAll(userId: string, role: 'user' | 'admin') {
+    if (role === 'admin') {
       return await this.order.find({ relations: { user: true, orderItems: true } });
     }
-    return await this.order.find({ where: { userId }, relations: { orderItems: true } });
+
+    // Supplier: orders that contain products from their shop
+    const shop = await this.shop.findOneBy({ ownerId: userId });
+    if (shop) {
+      const supplierOrderIds = await this.orderItem
+        .createQueryBuilder('oi')
+        .innerJoin('oi.product', 'p')
+        .select('oi.order_id', 'orderId')
+        .where('p.shop_id = :shopId', { shopId: shop.id })
+        .distinct(true)
+        .getRawMany<{ orderId: string }>();
+
+      if (supplierOrderIds.length === 0) return [];
+
+      return await this.order.find({
+        where: { id: In(supplierOrderIds.map((o) => o.orderId)) },
+        relations: { orderItems: { product: true }, user: true },
+      });
+    }
+
+    // Customer: own orders
+    return await this.order.find({
+      where: { userId },
+      relations: { orderItems: { product: true } },
+    });
   }
 
-  async findOne(id: string, userId: string, admin: boolean = false) {
-    const existingOrder = await this.order.findOneBy({ id });
-    if (!existingOrder) throw new NotFoundException('Order not found');
+  async findOne(id: string, userId: string, role: 'user' | 'admin') {
+    const order = await this.order.findOne({
+      where: { id },
+      relations: { orderItems: { product: true }, user: true },
+    });
+    if (!order) throw new NotFoundException('Order not found');
 
-    if (!admin && existingOrder.userId !== userId) {
-      throw new ForbiddenException('You are not the owner of this order');
+    if (role === 'admin') return order;
+    if (order.userId === userId) return order;
+
+    // Supplier: check if order contains their shop products
+    const shop = await this.shop.findOneBy({ ownerId: userId });
+    if (shop) {
+      const hasShopProduct = order.orderItems.some((i) => i.product?.shopId === shop.id);
+      if (hasShopProduct) return order;
     }
 
-    return existingOrder;
+    throw new ForbiddenException('Access denied');
   }
 
-  async update(id: string, updateOrderDto: UpdateOrderDto, userId: string) {
-    const existingOrder = await this.order.findOneBy({ id });
-    if (!existingOrder) throw new NotFoundException('Order not found');
+  async update(id: string, userId: string, role: 'user' | 'admin', dto: UpdateOrderDto) {
+    const order = await this.order.findOne({
+      where: { id },
+      relations: { orderItems: true },
+    });
+    if (!order) throw new NotFoundException('Order not found');
 
-    if (existingOrder.userId !== userId) {
-      throw new ForbiddenException('You are not the owner of this order');
+    const shop = role !== 'admin' ? await this.shop.findOneBy({ ownerId: userId }) : null;
+    const isSupplier = !!shop && order.orderItems.some((i) => i.product?.shopId === shop.id);
+    const isOwner = order.userId === userId;
+
+    if (role !== 'admin' && !isOwner && !isSupplier) {
+      throw new ForbiddenException('Access denied');
     }
 
-    if (existingOrder.status !== OrderStatus.PENDING) {
-      throw new BadRequestException('Only pending orders can be updated');
+    if (dto.status) {
+      this.validateStatusTransition(order.status, dto.status, { isOwner, isSupplier });
     }
 
-    await this.order.update(id, updateOrderDto);
-    return await this.order.findOneBy({ id });
+    const updateData: {
+      status?: OrderStatus;
+      trackingNumber?: string;
+      shippedAt?: Date;
+      deliveredAt?: Date;
+    } = {};
+
+    if (dto.status) {
+      updateData.status = dto.status;
+    }
+    if (dto.trackingNumber) {
+      updateData.trackingNumber = dto.trackingNumber;
+      updateData.shippedAt = new Date();
+    }
+    if (dto.status === OrderStatus.DELIVERED) {
+      updateData.deliveredAt = new Date();
+    }
+
+    await this.order.update(id, updateData);
+    return await this.order.findOne({
+      where: { id },
+      relations: { orderItems: { product: true }, user: true },
+    });
   }
 
   async cancelOrder(id: string) {
@@ -84,5 +156,30 @@ export class OrdersService {
       existingOrder.status = OrderStatus.CANCELLED;
       return manager.save(Order, existingOrder);
     });
+  }
+
+  private validateStatusTransition(
+    current: OrderStatus,
+    next: OrderStatus,
+    ctx: { isOwner: boolean; isSupplier: boolean },
+  ) {
+    const allowed: Record<string, OrderStatus[]> = {
+      [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
+      [OrderStatus.CONFIRMED]: [OrderStatus.SHIPPED, OrderStatus.CANCELLED],
+      [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED],
+      [OrderStatus.DELIVERED]: [OrderStatus.COMPLETED],
+      [OrderStatus.COMPLETED]: [],
+      [OrderStatus.CANCELLED]: [],
+    };
+
+    const transitions = allowed[current] ?? [];
+    if (!transitions.includes(next)) {
+      throw new BadRequestException(`Cannot transition from "${current}" to "${next}"`);
+    }
+
+    // Customer can only cancel pending orders
+    if (ctx.isOwner && !ctx.isSupplier && next !== OrderStatus.CANCELLED) {
+      throw new ForbiddenException('Customers can only cancel orders');
+    }
   }
 }

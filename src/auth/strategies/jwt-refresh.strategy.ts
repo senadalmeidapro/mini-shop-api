@@ -4,50 +4,42 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import type { Request } from 'express';
 import { User } from '../../users/entities/user.entity';
-
-export type JwtPayload = {
-  sub: string;
-  type: 'access' | 'refresh';
-  role?: 'user' | 'admin';
-};
+import type { JwtPayload } from './jwt.strategy';
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
+export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
   constructor(
     private readonly config: ConfigService,
     @InjectRepository(User)
     private readonly users: Repository<User>,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromBodyField('refreshToken'),
       ignoreExpiration: false,
-      secretOrKey: config.getOrThrow<string>('JWT_SECRET'),
-      passReqToCallback: true,
+      secretOrKey: config.getOrThrow<string>('JWT_REFRESH_SECRET'),
     });
   }
 
-  async validate(request: Request, payload: JwtPayload) {
-    if (payload.type !== 'access') {
+  async validate(payload: JwtPayload) {
+    if (payload.type !== 'refresh') {
       throw new UnauthorizedException('Invalid token type');
     }
 
-    const token = ExtractJwt.fromAuthHeaderAsBearerToken()(request);
     const user = await this.users
       .createQueryBuilder('user')
-      .addSelect('user.token')
+      .addSelect('user.refreshToken')
       .where('user.id = :id', { id: payload.sub })
       .getOne();
 
-    if (!user || !token || user.token !== token) {
-      throw new UnauthorizedException('Invalid token');
+    if (!user || !user.refreshToken) {
+      throw new UnauthorizedException('Invalid refresh token');
     }
 
     if (!user.emailVerified) {
       throw new UnauthorizedException('Email not verified');
     }
 
-    return { sub: payload.sub, type: 'access', role: user.role } as unknown;
+    return { sub: payload.sub, type: 'refresh', role: user.role } as unknown;
   }
 }

@@ -13,8 +13,11 @@ import { User } from '../../users/entities/user.entity';
 
 export enum OrderStatus {
   PENDING = 'pending',
-  COMPLETED = 'completed',
+  CONFIRMED = 'confirmed',
+  SHIPPED = 'shipped',
+  DELIVERED = 'delivered',
   CANCELLED = 'cancelled',
+  COMPLETED = 'completed',
 }
 
 @Entity()
@@ -30,6 +33,21 @@ export class Order {
 
   @Column({ type: 'decimal', precision: 12, scale: 2 })
   total!: number;
+
+  @Column({ type: 'jsonb', name: 'shipping_address', nullable: true })
+  shippingAddress?: Record<string, string>;
+
+  @Column({ type: 'varchar', name: 'tracking_number', nullable: true, length: 255 })
+  trackingNumber?: string | null;
+
+  @Column({ type: 'timestamp', name: 'estimated_delivery', nullable: true })
+  estimatedDelivery?: Date | null;
+
+  @Column({ type: 'timestamp', name: 'shipped_at', nullable: true })
+  shippedAt?: Date | null;
+
+  @Column({ type: 'timestamp', name: 'delivered_at', nullable: true })
+  deliveredAt?: Date | null;
 
   @ManyToOne(() => User, (user) => user.orders, {
     onDelete: 'CASCADE',

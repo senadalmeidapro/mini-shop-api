@@ -1,8 +1,8 @@
 import {
+  Body,
   Controller,
   Get,
   Post,
-  Body,
   Patch,
   Param,
   Delete,
@@ -15,60 +15,57 @@ import {
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { Public } from '../common/decorators';
+import { AdjustStockDto } from './dto/adjust-stock.dto';
+import { Public, currentUser } from '../common/decorators';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { randomUUID } from 'crypto';
+
+const maxSize = 5 * 1024 * 1024;
+
+const storage = diskStorage({
+  destination: join(process.cwd(), 'storage/products'),
+  filename: (_req, file, callback) => {
+    callback(null, `${randomUUID()}${extname(file.originalname)}`);
+  },
+});
+
+const fileFilter = (
+  _req: never,
+  file: Express.Multer.File,
+  callback: (error: Error | null, acceptFile: boolean) => void,
+) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  callback(null, allowedTypes.includes(file.mimetype));
+};
+
+const imageInterceptor = () =>
+  FileInterceptor('file', {
+    storage,
+    limits: { fileSize: maxSize },
+    fileFilter,
+  });
+
+const imageValidator = new ParseFilePipe({
+  validators: [new MaxFileSizeValidator({ maxSize })],
+  fileIsRequired: false,
+});
 
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post(':categoryId')
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: diskStorage({
-        destination: join(process.cwd(), 'storage/products'),
-        filename: (_req, file, callback) => {
-          const filename = `${randomUUID()}${extname(file.originalname)}`;
-
-          callback(null, filename);
-        },
-      }),
-
-      limits: {
-        fileSize: 5 * 1024 * 1024,
-      },
-
-      fileFilter: (_req, file, callback) => {
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-
-        if (allowedTypes.includes(file.mimetype)) {
-          callback(null, true);
-        } else {
-          callback(null, false);
-        }
-      },
-    }),
-  )
+  @UseInterceptors(imageInterceptor())
   create(
+    @currentUser('sub') sub: string,
     @Param('categoryId', ParseUUIDPipe) categoryId: string,
     @Body() createProductDto: CreateProductDto,
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({
-            maxSize: 5 * 1024 * 1024,
-          }),
-        ],
-      }),
-    )
-    file: Express.Multer.File,
+    @UploadedFile(imageValidator) file?: Express.Multer.File,
   ) {
-    const imageUrl = `/storage/products/${file.filename}`;
-
-    return this.productsService.create(categoryId, createProductDto, imageUrl);
+    const imageUrl = file ? `/storage/products/${file.filename}` : undefined;
+    return this.productsService.create(sub, categoryId, createProductDto, imageUrl);
   }
 
   @Get()
@@ -84,53 +81,34 @@ export class ProductsController {
   }
 
   @Patch(':id')
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: diskStorage({
-        destination: join(process.cwd(), 'storage/products'),
-        filename: (_req, file, callback) => {
-          const filename = `${randomUUID()}${extname(file.originalname)}`;
-
-          callback(null, filename);
-        },
-      }),
-
-      limits: {
-        fileSize: 5 * 1024 * 1024,
-      },
-
-      fileFilter: (_req, file, callback) => {
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-
-        if (allowedTypes.includes(file.mimetype)) {
-          callback(null, true);
-        } else {
-          callback(null, false);
-        }
-      },
-    }),
-  )
+  @UseInterceptors(imageInterceptor())
   update(
+    @currentUser('sub') sub: string,
+    @currentUser('role') role: 'user' | 'admin',
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateProductDto: UpdateProductDto,
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({
-            maxSize: 5 * 1024 * 1024,
-          }),
-        ],
-      }),
-    )
-    file: Express.Multer.File,
+    @UploadedFile(imageValidator) file?: Express.Multer.File,
   ) {
-    const imageUrl = `/storage/products/${file.filename}`;
+    const imageUrl = file ? `/storage/products/${file.filename}` : undefined;
+    return this.productsService.update(id, sub, updateProductDto, role === 'admin', imageUrl);
+  }
 
-    return this.productsService.update(id, updateProductDto, imageUrl);
+  @Patch(':id/stock')
+  adjustStock(
+    @currentUser('sub') sub: string,
+    @currentUser('role') role: 'user' | 'admin',
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AdjustStockDto,
+  ) {
+    return this.productsService.adjustStock(id, sub, dto.quantity, role === 'admin');
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.productsService.remove(id);
+  remove(
+    @currentUser('sub') sub: string,
+    @currentUser('role') role: 'user' | 'admin',
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.productsService.remove(id, sub, role === 'admin');
   }
 }

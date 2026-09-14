@@ -11,6 +11,8 @@ import { Address } from './address.entity';
 import { Cart } from '../../cart/entities/cart.entity';
 import { Review } from '../../reviews/entities/review.entity';
 import { Order } from '../../orders/entities/order.entity';
+import { Shop } from '../../shops/entities/shop.entity';
+import { Notification } from '../../notifications/entities/notification.entity';
 
 export enum UserRole {
   USER = 'user',
@@ -37,6 +39,21 @@ export class User {
   @Column({ type: 'varchar', nullable: true, select: false })
   token?: string | null;
 
+  @Column({ type: 'varchar', nullable: true, select: false, name: 'refresh_token' })
+  refreshToken?: string | null;
+
+  @Column({ type: 'varchar', nullable: true, select: false, name: 'reset_password_token' })
+  resetPasswordToken?: string | null;
+
+  @Column({ type: 'timestamp', nullable: true, select: false, name: 'reset_password_expires' })
+  resetPasswordExpires?: Date | null;
+
+  @Column({ type: 'boolean', name: 'email_verified', default: false })
+  emailVerified!: boolean;
+
+  @Column({ type: 'varchar', nullable: true, select: false, name: 'email_verification_token' })
+  emailVerificationToken?: string | null;
+
   @OneToMany(() => Address, (addresses) => addresses.user, {
     cascade: true,
     orphanedRowAction: 'delete',
@@ -49,6 +66,12 @@ export class User {
   })
   cart!: Cart;
 
+  @OneToOne(() => Shop, (shop) => shop.owner, {
+    cascade: true,
+    orphanedRowAction: 'delete',
+  })
+  shop!: Shop;
+
   @OneToMany(() => Order, (order) => order.user, {
     cascade: true,
     orphanedRowAction: 'delete',
@@ -60,6 +83,12 @@ export class User {
     orphanedRowAction: 'delete',
   })
   reviews!: Review[];
+
+  @OneToMany(() => Notification, (notification) => notification.user, {
+    cascade: true,
+    orphanedRowAction: 'delete',
+  })
+  notifications!: Notification[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

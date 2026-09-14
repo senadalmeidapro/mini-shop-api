@@ -30,7 +30,7 @@ export class UsersService {
     }
 
     dto.password = await bcrypt.hash(dto.password, 10);
-    const user = this.user.create({ ...dto, role: UserRole.USER });
+    const user = this.user.create({ ...dto, role: UserRole.USER, emailVerified: true });
     return await this.user.save(user);
   }
 

@@ -7,11 +7,11 @@ const config = new ConfigService();
 
 export default new DataSource({
   type: 'postgres',
-  host: config.get<string>('DB_HOST'),
-  port: config.get<number>('DB_PORT'),
-  username: config.get<string>('DB_USERNAME'),
-  password: config.get<string>('DB_PASSWORD'),
-  database: config.get<string>('DB_NAME'),
+  host: config.getOrThrow<string>('DB_HOST'),
+  port: config.getOrThrow<number>('DB_PORT'),
+  username: config.getOrThrow<string>('DB_USERNAME'),
+  password: config.getOrThrow<string>('DB_PASSWORD'),
+  database: config.getOrThrow<string>('DB_NAME'),
 
   entities: [join(__dirname, '../**/*.entity{.ts,.js}')],
 

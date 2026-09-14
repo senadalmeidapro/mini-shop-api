@@ -13,6 +13,12 @@ import { CartModule } from './cart/cart.module';
 import { OrdersModule } from './orders/orders.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { MailModule } from './mail/mail.module';
+import { ShopsModule } from './shops/shops.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { InvoicesModule } from './invoices/invoices.module';
+import { EventsModule } from './events/events.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -25,6 +31,8 @@ import { ServeStaticModule } from '@nestjs/serve-static';
       isGlobal: true,
       envFilePath: '.env',
     }),
+
+    EventEmitterModule.forRoot({ global: true }),
 
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
@@ -66,6 +74,11 @@ import { ServeStaticModule } from '@nestjs/serve-static';
     OrdersModule,
     PaymentsModule,
     ReviewsModule,
+    MailModule,
+    ShopsModule,
+    NotificationsModule,
+    InvoicesModule,
+    EventsModule,
   ],
 
   controllers: [AppController],

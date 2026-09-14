@@ -13,6 +13,8 @@ import { Cart } from '../cart/entities/cart.entity';
 import { OrdersService } from '../orders/orders.service';
 import { CreateOrderDto } from '../orders/dto/create-order.dto';
 import { CartItem } from '../cart/entities/cart-item.entity';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { OrderPaidEvent } from '../events/order-paid.event';
 
 @Injectable()
 export class PaymentsService {
@@ -30,6 +32,7 @@ export class PaymentsService {
     private readonly payment: Repository<Payment>,
 
     private readonly orderService: OrdersService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(userId: string, cartId: string, createPaymentDto: CreatePaymentDto) {
@@ -42,6 +45,10 @@ export class PaymentsService {
       throw new ForbiddenException('You are not the owner of this order');
     }
 
+    if (existingCart.cartItems.length === 0) {
+      throw new NotFoundException('Cart is empty');
+    }
+
     const total = existingCart.cartItems.reduce(
       (sum, ci) => sum + ci.quantity * ci.product.price,
       0,
@@ -50,6 +57,7 @@ export class PaymentsService {
     const orderDto: CreateOrderDto = {
       status: OrderStatus.PENDING,
       total,
+      shippingAddress: createPaymentDto.shippingAddress as Record<string, string>,
       orderItems: existingCart.cartItems.map((ci) => ({
         productId: ci.productId,
         quantity: ci.quantity,
@@ -57,7 +65,7 @@ export class PaymentsService {
       })),
     };
 
-    const order = await this.orderService.create(orderDto);
+    const order = await this.orderService.create(userId, orderDto);
 
     const payment = this.payment.create({
       ...createPaymentDto,
@@ -103,7 +111,23 @@ export class PaymentsService {
     }
 
     await this.payment.update(id, updatePaymentDto);
-    return await this.payment.findOneBy({ id });
+
+    // Payment validated by the customer -> trigger notifications + invoice
+    if (updatePaymentDto.status === PaymentStatus.SUCCEEDED) {
+      this.eventEmitter.emit(
+        'order.paid',
+        new OrderPaidEvent(
+          existingPayment.orderId,
+          userId,
+          updatePaymentDto.shippingAddress as Record<string, string> | undefined,
+        ),
+      );
+    }
+
+    return await this.payment.findOne({
+      where: { id },
+      relations: { order: true },
+    });
   }
 
   async cancel(id: string, userId: string, admin: boolean = false) {

@@ -12,6 +12,7 @@ import { CartItem } from '../../cart/entities/cart-item.entity';
 import { Review } from '../../reviews/entities/review.entity';
 import { OrderItem } from '../../orders/entities/order-item.entity';
 import { Category } from '../../categories/entities/category.entity';
+import { Shop } from '../../shops/entities/shop.entity';
 
 @Entity()
 export class Product {
@@ -20,6 +21,9 @@ export class Product {
 
   @Column({ name: 'category_id' })
   categoryId!: string;
+
+  @Column({ name: 'shop_id' })
+  shopId!: string;
 
   @Column({ length: 255 })
   name!: string;
@@ -36,12 +40,22 @@ export class Product {
   @Column({ type: 'integer' })
   stock!: number;
 
+  @Column({ type: 'integer', name: 'low_stock_threshold', default: 5 })
+  lowStockThreshold!: number;
+
   @ManyToOne(() => Category, (category) => category.products, {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
   })
   @JoinColumn({ name: 'category_id' })
   category!: Category;
+
+  @ManyToOne(() => Shop, (shop) => shop.products, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  })
+  @JoinColumn({ name: 'shop_id' })
+  shop!: Shop;
 
   @OneToMany(() => CartItem, (cartItems) => cartItems.product, {
     cascade: true,

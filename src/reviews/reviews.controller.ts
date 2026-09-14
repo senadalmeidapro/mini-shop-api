@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe } from
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
-import { currentUser } from '../common/decorators';
+import { Public, currentUser } from '../common/decorators';
 
 @Controller('reviews')
 export class ReviewsController {
@@ -18,11 +18,13 @@ export class ReviewsController {
   }
 
   @Get()
+  @Public()
   findAll() {
     return this.reviewsService.findAll();
   }
 
   @Get(':id')
+  @Public()
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.reviewsService.findOne(id);
   }

@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe } from
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { Public } from '../common/decorators';
 
 @Controller('categories')
 export class CategoriesController {
@@ -13,11 +14,13 @@ export class CategoriesController {
   }
 
   @Get()
+  @Public()
   findAll() {
     return this.categoriesService.findAll();
   }
 
   @Get(':id')
+  @Public()
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.categoriesService.findOne(id);
   }

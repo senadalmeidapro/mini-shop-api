@@ -14,7 +14,7 @@ import type { Response } from 'express';
 import { createReadStream } from 'fs';
 import { OrdersService } from './orders.service';
 import { UpdateOrderDto } from './dto/update-order.dto';
-import { currentUser } from '../common/decorators';
+import { currentUser, type RoleLike } from '../common/decorators';
 import { InvoicesService } from '../invoices/invoices.service';
 import { PaginationDto } from '../common/dto/pagination.dto';
 
@@ -30,7 +30,7 @@ export class OrdersController {
   @Get()
   findAll(
     @currentUser('sub') sub: string,
-    @currentUser('role') role: 'user' | 'admin',
+    @currentUser('role') role: RoleLike,
     @Query() pagination: PaginationDto,
   ) {
     return this.ordersService.findAll(sub, role, pagination);
@@ -39,7 +39,7 @@ export class OrdersController {
   @Get(':id')
   findOne(
     @currentUser('sub') sub: string,
-    @currentUser('role') role: 'user' | 'admin',
+    @currentUser('role') role: RoleLike,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.ordersService.findOne(id, sub, role);
@@ -48,7 +48,7 @@ export class OrdersController {
   @Get(':id/invoice')
   async getInvoice(
     @currentUser('sub') sub: string,
-    @currentUser('role') role: 'user' | 'admin',
+    @currentUser('role') role: RoleLike,
     @Param('id', ParseUUIDPipe) id: string,
     @Res({ passthrough: true }) res: Response,
   ) {
@@ -68,7 +68,7 @@ export class OrdersController {
   @Patch(':id')
   update(
     @currentUser('sub') sub: string,
-    @currentUser('role') role: 'user' | 'admin',
+    @currentUser('role') role: RoleLike,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateOrderDto: UpdateOrderDto,
   ) {

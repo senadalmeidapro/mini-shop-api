@@ -3,7 +3,7 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AddressDto } from './dto/create-address.dto';
-import { currentUser, roles } from '../common/decorators';
+import { currentUser, roles, type RoleLike } from '../common/decorators';
 import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('users')
@@ -26,7 +26,7 @@ export class UsersController {
   findOne(
     @Param('id') id: string,
     @currentUser('sub') userId: string,
-    @currentUser('role') role: 'user' | 'admin',
+    @currentUser('role') role: RoleLike,
   ) {
     return this.userService.findOne(id, userId, role === 'admin');
   }
@@ -36,7 +36,7 @@ export class UsersController {
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
     @currentUser('sub') userId: string,
-    @currentUser('role') role: 'user' | 'admin',
+    @currentUser('role') role: RoleLike,
   ) {
     return this.userService.update(id, updateUserDto, userId, role === 'admin');
   }
@@ -45,7 +45,7 @@ export class UsersController {
   remove(
     @Param('id') id: string,
     @currentUser('sub') userId: string,
-    @currentUser('role') role: 'user' | 'admin',
+    @currentUser('role') role: RoleLike,
   ) {
     return this.userService.remove(id, userId, role === 'admin');
   }

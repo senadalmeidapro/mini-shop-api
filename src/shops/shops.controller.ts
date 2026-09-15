@@ -12,7 +12,7 @@ import {
 import { ShopsService } from './shops.service';
 import { CreateShopDto } from './dto/create-shop.dto';
 import { UpdateShopDto } from './dto/update-shop.dto';
-import { Public, currentUser } from '../common/decorators';
+import { Public, currentUser, roles, type RoleLike } from '../common/decorators';
 import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('shops')
@@ -42,9 +42,10 @@ export class ShopsController {
   }
 
   @Patch(':id')
+  @roles('supplier', 'admin')
   update(
     @currentUser('sub') ownerId: string,
-    @currentUser('role') role: 'user' | 'admin',
+    @currentUser('role') role: RoleLike,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateShopDto,
   ) {
@@ -52,9 +53,10 @@ export class ShopsController {
   }
 
   @Delete(':id')
+  @roles('supplier', 'admin')
   remove(
     @currentUser('sub') ownerId: string,
-    @currentUser('role') role: 'user' | 'admin',
+    @currentUser('role') role: RoleLike,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.shopsService.remove(id, ownerId, role === 'admin');

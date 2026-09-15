@@ -17,6 +17,7 @@ import { Notification } from '../../notifications/entities/notification.entity';
 export enum UserRole {
   USER = 'user',
   ADMIN = 'admin',
+  SUPPLIER = 'supplier',
 }
 
 @Entity()

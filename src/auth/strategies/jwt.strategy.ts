@@ -6,11 +6,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { Request } from 'express';
 import { User } from '../../users/entities/user.entity';
+import { UserRole } from '../../users/entities/user.entity';
 
 export type JwtPayload = {
   sub: string;
   type: 'access' | 'refresh';
-  role?: 'user' | 'admin';
+  role?: UserRole;
 };
 
 @Injectable()

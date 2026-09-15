@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
-import { currentUser, roles } from '../common/decorators';
+import { currentUser, roles, type RoleLike } from '../common/decorators';
 import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('payments')
@@ -36,7 +36,7 @@ export class PaymentsController {
   @Get(':id')
   findOne(
     @currentUser('sub') sub: string,
-    @currentUser('role') role: 'user' | 'admin',
+    @currentUser('role') role: RoleLike,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.paymentsService.findOne(id, sub, role === 'admin');
@@ -54,7 +54,7 @@ export class PaymentsController {
   @Delete(':id')
   remove(
     @currentUser('sub') sub: string,
-    @currentUser('role') role: 'user' | 'admin',
+    @currentUser('role') role: RoleLike,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.paymentsService.cancel(id, sub, role === 'admin');

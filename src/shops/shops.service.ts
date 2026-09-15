@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 import { Shop } from './entities/shop.entity';
 import { CreateShopDto } from './dto/create-shop.dto';
 import { UpdateShopDto } from './dto/update-shop.dto';
+import { User, UserRole } from '../users/entities/user.entity';
 import { PaginationDto, PaginatedResult, buildPaginatedResult } from '../common/dto/pagination.dto';
 
 @Injectable()
@@ -16,7 +17,18 @@ export class ShopsService {
   constructor(
     @InjectRepository(Shop)
     private readonly shop: Repository<Shop>,
+
+    @InjectRepository(User)
+    private readonly user: Repository<User>,
   ) {}
+
+  private async promoteToSupplier(userId: string) {
+    await this.user.update({ id: userId, role: UserRole.USER }, { role: UserRole.SUPPLIER });
+  }
+
+  private async demoteFromSupplier(userId: string) {
+    await this.user.update({ id: userId, role: UserRole.SUPPLIER }, { role: UserRole.USER });
+  }
 
   async create(ownerId: string, dto: CreateShopDto) {
     const existing = await this.shop.findOneBy({ ownerId });
@@ -30,7 +42,9 @@ export class ShopsService {
     }
 
     const shop = this.shop.create({ ...dto, ownerId });
-    return await this.shop.save(shop);
+    const saved = await this.shop.save(shop);
+    await this.promoteToSupplier(ownerId);
+    return saved;
   }
 
   async findMyShop(ownerId: string) {
@@ -87,7 +101,14 @@ export class ShopsService {
       throw new ForbiddenException('You are not the owner of this shop');
     }
 
-    return await this.shop.delete(id);
+    const shopOwnerId = shop.ownerId;
+    const result = await this.shop.delete(id);
+
+    if (result.affected) {
+      await this.demoteFromSupplier(shopOwnerId);
+    }
+
+    return result;
   }
 
   async findByOwner(ownerId: string) {

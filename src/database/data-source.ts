@@ -13,5 +13,6 @@ export default new DataSource({
   entities: ['src/**/*.entity{.ts,.js}'],
   migrations: ['migrations/*{.ts,.js}'],
   migrationsTableName: 'migrations',
+  migrationsTransactionMode: 'each',
   synchronize: false,
 });

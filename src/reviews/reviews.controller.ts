@@ -12,7 +12,7 @@ import {
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
-import { Public, currentUser } from '../common/decorators';
+import { Public, currentUser, type RoleLike } from '../common/decorators';
 import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('reviews')
@@ -52,7 +52,7 @@ export class ReviewsController {
   @Delete(':id')
   remove(
     @currentUser('sub') sub: string,
-    @currentUser('role') role: 'user' | 'admin',
+    @currentUser('role') role: RoleLike,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.reviewsService.remove(id, sub, role === 'admin');

@@ -13,6 +13,7 @@ import { DataSource, In, Repository } from 'typeorm';
 import { Product } from '../products/entities/product.entity';
 import { Shop } from '../shops/entities/shop.entity';
 import { PaginationDto, PaginatedResult, buildPaginatedResult } from '../common/dto/pagination.dto';
+import { RoleLike } from '../common/decorators';
 
 @Injectable()
 export class OrdersService {
@@ -45,7 +46,7 @@ export class OrdersService {
 
   async findAll(
     userId: string,
-    role: 'user' | 'admin',
+    role: RoleLike,
     pagination: PaginationDto = {},
   ): Promise<PaginatedResult<Order>> {
     const page = pagination.page ?? 1;
@@ -97,7 +98,7 @@ export class OrdersService {
     return buildPaginatedResult(data, total, page, limit);
   }
 
-  async findOne(id: string, userId: string, role: 'user' | 'admin') {
+  async findOne(id: string, userId: string, role: RoleLike) {
     const order = await this.order.findOne({
       where: { id },
       relations: { orderItems: { product: true }, user: true },
@@ -117,7 +118,7 @@ export class OrdersService {
     throw new ForbiddenException('Access denied');
   }
 
-  async update(id: string, userId: string, role: 'user' | 'admin', dto: UpdateOrderDto) {
+  async update(id: string, userId: string, role: RoleLike, dto: UpdateOrderDto) {
     const order = await this.order.findOne({
       where: { id },
       relations: { orderItems: { product: true } },

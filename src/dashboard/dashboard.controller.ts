@@ -7,6 +7,7 @@ export class SupplierDashboardController {
   constructor(private readonly dashboard: DashboardService) {}
 
   @Get()
+  @roles('supplier', 'admin')
   get(@currentUser('sub') userId: string) {
     return this.dashboard.supplier(userId);
   }

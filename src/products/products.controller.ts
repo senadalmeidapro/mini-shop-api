@@ -17,7 +17,7 @@ import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { AdjustStockDto } from './dto/adjust-stock.dto';
-import { Public, currentUser } from '../common/decorators';
+import { Public, currentUser, roles, type RoleLike } from '../common/decorators';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -60,6 +60,7 @@ export class ProductsController {
 
   @Post(':categoryId')
   @UseInterceptors(imageInterceptor())
+  @roles('supplier', 'admin')
   create(
     @currentUser('sub') sub: string,
     @Param('categoryId', ParseUUIDPipe) categoryId: string,
@@ -77,6 +78,7 @@ export class ProductsController {
   }
 
   @Get('me')
+  @roles('supplier', 'admin')
   findMine(@currentUser('sub') sub: string) {
     return this.productsService.findMine(sub);
   }
@@ -89,9 +91,10 @@ export class ProductsController {
 
   @Patch(':id')
   @UseInterceptors(imageInterceptor())
+  @roles('supplier', 'admin')
   update(
     @currentUser('sub') sub: string,
-    @currentUser('role') role: 'user' | 'admin',
+    @currentUser('role') role: RoleLike,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateProductDto: UpdateProductDto,
     @UploadedFile(imageValidator) file?: Express.Multer.File,
@@ -101,9 +104,10 @@ export class ProductsController {
   }
 
   @Patch(':id/stock')
+  @roles('supplier', 'admin')
   adjustStock(
     @currentUser('sub') sub: string,
-    @currentUser('role') role: 'user' | 'admin',
+    @currentUser('role') role: RoleLike,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AdjustStockDto,
   ) {
@@ -111,9 +115,10 @@ export class ProductsController {
   }
 
   @Delete(':id')
+  @roles('supplier', 'admin')
   remove(
     @currentUser('sub') sub: string,
-    @currentUser('role') role: 'user' | 'admin',
+    @currentUser('role') role: RoleLike,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.productsService.remove(id, sub, role === 'admin');

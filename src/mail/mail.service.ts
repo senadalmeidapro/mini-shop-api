@@ -129,7 +129,7 @@ export class MailService {
           <tbody>${data.itemsHtml}</tbody>
         </table>
         <p style="font-size:18px;font-weight:700;color:#1f2937;text-align:right;margin:0 0 24px">
-          Total: ${data.total} €
+          Total: ${data.total} FCFA
         </p>
         <a href="${frontendUrl}/dashboard/orders/${data.orderNumber}"
            style="display:inline-block;background:#2563eb;color:#ffffff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600">
@@ -200,7 +200,7 @@ export class MailService {
           <tbody>${data.itemsHtml}</tbody>
         </table>
         <p style="font-size:18px;font-weight:700;color:#1f2937;text-align:right;margin:0 0 24px">
-          Total: ${data.total} €
+          Total: ${data.total} FCFA
         </p>
         <a href="${frontendUrl}/orders/${data.orderNumber}"
            style="display:inline-block;background:#2563eb;color:#ffffff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600">

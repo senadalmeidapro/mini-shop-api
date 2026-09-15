@@ -15,6 +15,7 @@ import { CreateOrderDto } from '../orders/dto/create-order.dto';
 import { CartItem } from '../cart/entities/cart-item.entity';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OrderPaidEvent } from '../events/order-paid.event';
+import { PaginationDto, PaginatedResult, buildPaginatedResult } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class PaymentsService {
@@ -77,8 +78,16 @@ export class PaymentsService {
     return savedPayment;
   }
 
-  async findAll() {
-    return await this.payment.find();
+  async findAll(pagination: PaginationDto = {}): Promise<PaginatedResult<Payment>> {
+    const page = pagination.page ?? 1;
+    const limit = pagination.limit ?? 20;
+    const [data, total] = await this.payment.findAndCount({
+      relations: { order: true },
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { createdAt: 'DESC' },
+    });
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async findOne(id: string, userId: string, admin: boolean = false) {

@@ -62,6 +62,28 @@ export class AuthService {
     };
   }
 
+  async resendVerification(email: string) {
+    const user = await this.user.findOneBy({ email });
+
+    // Réponse identique que l'utilisateur existe ou non (anti-enumération)
+    if (!user || user.emailVerified) {
+      return { message: 'Si cet email existe, un lien de vérification a été envoyé.' };
+    }
+
+    const emailVerificationToken = crypto.randomBytes(32).toString('hex');
+    await this.user.update(user.id, { emailVerificationToken });
+
+    try {
+      const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
+      const verificationUrl = `${frontendUrl}/auth/verify-email?token=${emailVerificationToken}`;
+      await this.mail.sendVerificationEmail(user.email, user.fullName, verificationUrl);
+    } catch {
+      this.logger.warn('Verification email failed to resend');
+    }
+
+    return { message: 'Si cet email existe, un lien de vérification a été envoyé.' };
+  }
+
   async verifyEmail(token: string) {
     const user = await this.user
       .createQueryBuilder('user')
@@ -108,9 +130,17 @@ export class AuthService {
     return { ...tokens, user: signedUser };
   }
 
-  async refresh(userId: string) {
-    const user = await this.user.findOneBy({ id: userId });
+  async refresh(userId: string, presentedRefreshToken: string) {
+    const user = await this.user
+      .createQueryBuilder('user')
+      .addSelect('user.refreshToken')
+      .where('user.id = :id', { id: userId })
+      .getOne();
     if (!user) throw new UnauthorizedException('Invalid refresh token');
+
+    if (!user.refreshToken || user.refreshToken !== presentedRefreshToken) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
 
     const tokens = await this.issueTokens(user.id, user.role);
     await this.user.update(user.id, {

@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 import { Shop } from './entities/shop.entity';
 import { CreateShopDto } from './dto/create-shop.dto';
 import { UpdateShopDto } from './dto/update-shop.dto';
+import { PaginationDto, PaginatedResult, buildPaginatedResult } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class ShopsService {
@@ -38,8 +39,16 @@ export class ShopsService {
     return shop;
   }
 
-  async findAll() {
-    return await this.shop.find();
+  async findAll(pagination: PaginationDto = {}): Promise<PaginatedResult<Shop>> {
+    const page = pagination.page ?? 1;
+    const limit = pagination.limit ?? 20;
+    const [data, total] = await this.shop.findAndCount({
+      relations: { owner: true },
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { createdAt: 'DESC' },
+    });
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async findOne(id: string) {

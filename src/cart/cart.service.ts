@@ -21,9 +21,6 @@ export class CartService {
     @InjectRepository(Product)
     private readonly product: Repository<Product>,
 
-    @InjectRepository(CartItem)
-    private readonly cartItem: Repository<CartItem>,
-
     @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {}
@@ -38,19 +35,29 @@ export class CartService {
 
       const existingProduct = await manager.findOne(Product, {
         where: { id: productId },
+        lock: { mode: 'pessimistic_write' },
       });
       if (!existingProduct) throw new NotFoundException('Product not found');
-
-      if (createCartItemDto.quantity > existingProduct.stock) {
-        throw new BadRequestException("Product stock isn't enough");
-      }
 
       // Même produit déjà dans le panier : on incrémente la quantité (pas de doublon)
       const existingItem = await manager.findOne(CartItem, {
         where: { cart: { id: cart.id }, product: { id: existingProduct.id } },
       });
+
+      // Le total (déjà dans le panier + ajout) ne doit pas dépasser le stock restant
+      const finalQuantity = (existingItem?.quantity ?? 0) + createCartItemDto.quantity;
+      if (finalQuantity > existingProduct.stock) {
+        throw new BadRequestException("Product stock isn't enough");
+      }
+
       if (existingItem) {
-        await manager.increment(CartItem, { id: existingItem.id }, 'quantity', createCartItemDto.quantity);
+        await manager.increment(
+          CartItem,
+          { id: existingItem.id },
+          'quantity',
+          createCartItemDto.quantity,
+        );
+        await manager.decrement(Product, { id: productId }, 'stock', createCartItemDto.quantity);
         return await manager.findOneByOrFail(CartItem, { id: existingItem.id });
       }
 
@@ -92,31 +99,67 @@ export class CartService {
   }
 
   async updateCartItem(id: string, updateCartItemDto: UpdateCartItemDto, userId: string) {
-    const existingCartItem = await this.cartItem.findOne({
-      where: { id },
-      relations: { cart: true },
+    return this.dataSource.transaction(async (manager) => {
+      const existingCartItem = await manager.findOne(CartItem, {
+        where: { id },
+        relations: { cart: true, product: true },
+      });
+      if (!existingCartItem) throw new NotFoundException('Cart item not found');
+
+      if (existingCartItem.cart.userId !== userId) {
+        throw new ForbiddenException('You are not the owner of this cart');
+      }
+
+      const newQuantity = updateCartItemDto.quantity;
+      if (newQuantity === undefined) {
+        return await manager.findOneBy(Cart, { id: existingCartItem.cart.id });
+      }
+
+      const delta = newQuantity - existingCartItem.quantity;
+      if (delta !== 0) {
+        const product = existingCartItem.product;
+        if (product) {
+          if (delta > 0) {
+            // Verrou pessimiste : sérialise les mises à jour concurrentes du même produit
+            const lockedProduct = await manager.findOne(Product, {
+              where: { id: product.id },
+              lock: { mode: 'pessimistic_write' },
+            });
+            const available = lockedProduct?.stock ?? 0;
+            if (available < delta) {
+              throw new BadRequestException("Product stock isn't enough");
+            }
+            await manager.decrement(Product, { id: product.id }, 'stock', delta);
+          } else {
+            await manager.increment(Product, { id: product.id }, 'stock', -delta);
+          }
+        }
+        await manager.update(CartItem, { id: existingCartItem.id }, { quantity: newQuantity });
+      }
+
+      return await manager.findOneBy(Cart, { id: existingCartItem.cart.id });
     });
-    if (!existingCartItem) throw new NotFoundException('Cart item not found');
-
-    if (existingCartItem.cart.userId !== userId) {
-      throw new ForbiddenException('You are not the owner of this cart');
-    }
-
-    await this.cartItem.update(id, updateCartItemDto);
-    return await this.cart.findOneBy({ id: existingCartItem.cart.id });
   }
 
   async remove(id: string, userId: string) {
-    const existingCartItem = await this.cartItem.findOne({
-      where: { id },
-      relations: { cart: true },
+    return this.dataSource.transaction(async (manager) => {
+      const existingCartItem = await manager.findOne(CartItem, {
+        where: { id },
+        relations: { cart: true, product: true },
+      });
+      if (!existingCartItem) throw new NotFoundException('Cart item not found');
+
+      if (existingCartItem.cart.userId !== userId) {
+        throw new ForbiddenException('You are not the owner of this cart');
+      }
+
+      // Restitution du stock réservé au retrait du panier
+      const product = existingCartItem.product;
+      if (product) {
+        await manager.increment(Product, { id: product.id }, 'stock', existingCartItem.quantity);
+      }
+
+      return await manager.delete(CartItem, { id: existingCartItem.id });
     });
-    if (!existingCartItem) throw new NotFoundException('Cart item not found');
-
-    if (existingCartItem.cart.userId !== userId) {
-      throw new ForbiddenException('You are not the owner of this cart');
-    }
-
-    return await this.cartItem.delete(id);
   }
 }

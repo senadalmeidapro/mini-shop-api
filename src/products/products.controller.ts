@@ -11,12 +11,14 @@ import {
   UploadedFile,
   ParseFilePipe,
   MaxFileSizeValidator,
+  Query,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { AdjustStockDto } from './dto/adjust-stock.dto';
 import { Public, currentUser } from '../common/decorators';
+import { PaginationDto } from '../common/dto/pagination.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
@@ -70,8 +72,13 @@ export class ProductsController {
 
   @Get()
   @Public()
-  findAll() {
-    return this.productsService.findAll();
+  findAll(@Query() pagination: PaginationDto) {
+    return this.productsService.findAll(pagination);
+  }
+
+  @Get('me')
+  findMine(@currentUser('sub') sub: string) {
+    return this.productsService.findMine(sub);
   }
 
   @Get(':id')

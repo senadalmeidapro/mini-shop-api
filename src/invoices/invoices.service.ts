@@ -133,7 +133,7 @@ export class InvoicesService {
           width: colWidths[1] - 10,
         });
         doc.text(
-          `${item.unitPrice.toFixed(2)} €`,
+          `${item.unitPrice.toLocaleString('fr-FR')} FCFA`,
           startX + colWidths[0] + colWidths[1] + 8,
           y + 3,
           {
@@ -141,7 +141,7 @@ export class InvoicesService {
           },
         );
         doc.text(
-          `${lineTotal.toFixed(2)} €`,
+          `${lineTotal.toLocaleString('fr-FR')} FCFA`,
           startX + colWidths[0] + colWidths[1] + colWidths[2] + 8,
           y + 3,
           {
@@ -154,7 +154,7 @@ export class InvoicesService {
       // --- Totals ---
       y += 10;
       doc.font('Helvetica-Bold').fontSize(11).fillColor('#000000');
-      doc.text(`Total: ${Number(order.total).toFixed(2)} €`, 350, y, {
+      doc.text(`Total: ${Number(order.total).toLocaleString('fr-FR')} FCFA`, 350, y, {
         align: 'right',
         width: 200,
       });

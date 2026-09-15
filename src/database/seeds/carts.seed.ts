@@ -8,7 +8,6 @@ export async function seedCarts(ds: DataSource): Promise<Cart[]> {
   const users = await ds.getRepository(User).find();
 
   const cartRepo = ds.getRepository(Cart);
-  const itemRepo = ds.getRepository(CartItem);
 
   const carts: Cart[] = [];
 

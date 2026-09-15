@@ -67,7 +67,7 @@ export class OrderPaidListener {
       const itemsHtml = supplierItems
         .map(
           (i) =>
-            `<tr><td>${i.product?.name ?? 'N/A'}</td><td>${i.quantity}</td><td>${Number(i.unitPrice).toFixed(2)} €</td></tr>`,
+            `<tr><td>${i.product?.name ?? 'N/A'}</td><td>${i.quantity}</td><td>${Number(i.unitPrice).toFixed(2)} FCFA</td></tr>`,
         )
         .join('');
 
@@ -82,7 +82,7 @@ export class OrderPaidListener {
           userId: shop.ownerId,
           type: NotificationType.NEW_ORDER,
           title: `New order #${order.id.slice(0, 8).toUpperCase()}`,
-          message: `Order of ${supplierTotal.toFixed(2)} € (${supplierItems.length} item${supplierItems.length > 1 ? 's' : ''})`,
+          message: `Order of ${supplierTotal.toFixed(2)} FCFA (${supplierItems.length} item${supplierItems.length > 1 ? 's' : ''})`,
           data: { orderId: order.id, total: supplierTotal },
         }),
       );
@@ -118,7 +118,7 @@ export class OrderPaidListener {
         userId: event.userId,
         type: NotificationType.PAYMENT_SUCCEEDED,
         title: `Payment confirmed for order #${order.id.slice(0, 8).toUpperCase()}`,
-        message: `Your payment of ${Number(order.total).toFixed(2)} € has been confirmed. Invoice attached.`,
+        message: `Your payment of ${Number(order.total).toFixed(2)} FCFA has been confirmed. Invoice attached.`,
         data: { orderId: order.id },
       }),
     );
@@ -127,7 +127,7 @@ export class OrderPaidListener {
     const itemsHtmlCustomer = items
       .map(
         (i) =>
-          `<tr><td>${i.product?.name ?? 'N/A'}</td><td>${i.quantity}</td><td>${Number(i.unitPrice).toFixed(2)} €</td></tr>`,
+          `<tr><td>${i.product?.name ?? 'N/A'}</td><td>${i.quantity}</td><td>${Number(i.unitPrice).toFixed(2)} FCFA</td></tr>`,
       )
       .join('');
 

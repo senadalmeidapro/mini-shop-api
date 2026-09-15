@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notification, NotificationType } from './entities/notification.entity';
+import { PaginationDto, PaginatedResult, buildPaginatedResult } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class NotificationsService {
@@ -21,12 +22,19 @@ export class NotificationsService {
     return await this.notification.save(notification);
   }
 
-  async findAllForUser(userId: string, limit = 50) {
-    return await this.notification.find({
+  async findAllForUser(
+    userId: string,
+    pagination: PaginationDto = {},
+  ): Promise<PaginatedResult<Notification>> {
+    const page = pagination.page ?? 1;
+    const limit = pagination.limit ?? 20;
+    const [data, total] = await this.notification.findAndCount({
       where: { userId },
       order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
       take: limit,
     });
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async unreadCount(userId: string) {

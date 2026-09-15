@@ -4,6 +4,7 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Category } from './entities/category.entity';
 import { Repository } from 'typeorm';
+import { PaginationDto, PaginatedResult, buildPaginatedResult } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class CategoriesService {
@@ -20,17 +21,24 @@ export class CategoriesService {
     return await this.categry.save(category);
   }
 
-  async findAll() {
-    return await this.categry.find();
+  async findAll(pagination: PaginationDto = {}): Promise<PaginatedResult<Category>> {
+    const page = pagination.page ?? 1;
+    const limit = pagination.limit ?? 20;
+    const [data, total] = await this.categry.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { name: 'ASC' },
+    });
+    return buildPaginatedResult(data, total, page, limit);
   }
 
-  async findOne(slug: string) {
+  async findOne(id: string) {
     const category = await this.categry.findOne({
-      where: { slug },
+      where: { id },
       relations: { products: true },
     });
 
-    if (!category) throw new NotFoundException(`Category ${slug} not found.`);
+    if (!category) throw new NotFoundException(`Category ${id} not found.`);
     return category;
   }
 

@@ -12,6 +12,7 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { AddressDto } from './dto/create-address.dto';
 import { Address } from './entities/address.entity';
+import { PaginationDto, PaginatedResult, buildPaginatedResult } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class UsersService {
@@ -34,8 +35,15 @@ export class UsersService {
     return await this.user.save(user);
   }
 
-  async findAll() {
-    return await this.user.find();
+  async findAll(pagination: PaginationDto = {}): Promise<PaginatedResult<User>> {
+    const page = pagination.page ?? 1;
+    const limit = pagination.limit ?? 20;
+    const [data, total] = await this.user.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { createdAt: 'DESC' },
+    });
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async findOne(id: string, userId?: string, admin: boolean = false) {

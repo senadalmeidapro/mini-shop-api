@@ -1,8 +1,19 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ShopsService } from './shops.service';
 import { CreateShopDto } from './dto/create-shop.dto';
 import { UpdateShopDto } from './dto/update-shop.dto';
 import { Public, currentUser } from '../common/decorators';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('shops')
 export class ShopsController {
@@ -20,8 +31,8 @@ export class ShopsController {
 
   @Get()
   @Public()
-  findAll() {
-    return this.shopsService.findAll();
+  findAll(@Query() pagination: PaginationDto) {
+    return this.shopsService.findAll(pagination);
   }
 
   @Get(':id')

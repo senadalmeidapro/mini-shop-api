@@ -11,6 +11,7 @@ import { Product } from './entities/product.entity';
 import { Repository } from 'typeorm';
 import { Category } from '../categories/entities/category.entity';
 import { Shop } from '../shops/entities/shop.entity';
+import { PaginationDto, PaginatedResult, buildPaginatedResult } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class ProductsService {
@@ -46,8 +47,22 @@ export class ProductsService {
     return await this.product.save(product);
   }
 
-  async findAll() {
-    return await this.product.find({ relations: { shop: true } });
+  async findAll(pagination: PaginationDto = {}): Promise<PaginatedResult<Product>> {
+    const page = pagination.page ?? 1;
+    const limit = pagination.limit ?? 20;
+    const [data, total] = await this.product.findAndCount({
+      relations: { shop: true },
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { createdAt: 'DESC' },
+    });
+    return buildPaginatedResult(data, total, page, limit);
+  }
+
+  async findMine(ownerId: string) {
+    const shop = await this.shop.findOneBy({ ownerId });
+    if (!shop) throw new NotFoundException('You do not have a shop yet');
+    return await this.findByShop(shop.id);
   }
 
   async findByShop(shopId: string) {

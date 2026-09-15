@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe } from
 import { CartService } from './cart.service';
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
-import { currentUser } from '../common/decorators';
+import { currentUser, roles } from '../common/decorators';
 
 @Controller('cart')
 export class CartController {
@@ -23,6 +23,7 @@ export class CartController {
   }
 
   @Get()
+  @roles('admin')
   findAll() {
     return this.cartService.findAllCart();
   }

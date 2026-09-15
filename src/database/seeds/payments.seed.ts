@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm';
-import { Order } from '../../orders/entities/order.entity';
+import { Order, OrderStatus } from '../../orders/entities/order.entity';
 import { Payment, PaymentMethod, PaymentStatus } from '../../payments/entities/payment.entity';
 
 export async function seedPayments(ds: DataSource): Promise<Payment[]> {
@@ -12,9 +12,9 @@ export async function seedPayments(ds: DataSource): Promise<Payment[]> {
       orderId: order.id,
       amount: Number(order.total),
       status:
-        order.status === 'completed'
+        order.status === OrderStatus.COMPLETED
           ? PaymentStatus.SUCCEEDED
-          : order.status === 'cancelled'
+          : order.status === OrderStatus.CANCELLED
             ? PaymentStatus.CANCELLED
             : PaymentStatus.PENDING,
       method: [PaymentMethod.CARD, PaymentMethod.PAYPAL, PaymentMethod.CRYPTO][index % 3],

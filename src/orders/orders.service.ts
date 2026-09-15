@@ -12,6 +12,7 @@ import { OrderItem } from './entities/order-item.entity';
 import { DataSource, In, Repository } from 'typeorm';
 import { Product } from '../products/entities/product.entity';
 import { Shop } from '../shops/entities/shop.entity';
+import { PaginationDto, PaginatedResult, buildPaginatedResult } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class OrdersService {
@@ -42,9 +43,22 @@ export class OrdersService {
     return await this.order.save(order);
   }
 
-  async findAll(userId: string, role: 'user' | 'admin') {
+  async findAll(
+    userId: string,
+    role: 'user' | 'admin',
+    pagination: PaginationDto = {},
+  ): Promise<PaginatedResult<Order>> {
+    const page = pagination.page ?? 1;
+    const limit = pagination.limit ?? 20;
+
     if (role === 'admin') {
-      return await this.order.find({ relations: { user: true, orderItems: true } });
+      const [data, total] = await this.order.findAndCount({
+        relations: { user: true, orderItems: true },
+        skip: (page - 1) * limit,
+        take: limit,
+        order: { createdAt: 'DESC' },
+      });
+      return buildPaginatedResult(data, total, page, limit);
     }
 
     // Supplier: orders that contain products from their shop
@@ -58,19 +72,29 @@ export class OrdersService {
         .distinct(true)
         .getRawMany<{ orderId: string }>();
 
-      if (supplierOrderIds.length === 0) return [];
+      if (supplierOrderIds.length === 0) {
+        return buildPaginatedResult([], 0, page, limit);
+      }
 
-      return await this.order.find({
+      const [data, total] = await this.order.findAndCount({
         where: { id: In(supplierOrderIds.map((o) => o.orderId)) },
         relations: { orderItems: { product: true }, user: true },
+        skip: (page - 1) * limit,
+        take: limit,
+        order: { createdAt: 'DESC' },
       });
+      return buildPaginatedResult(data, total, page, limit);
     }
 
     // Customer: own orders
-    return await this.order.find({
+    const [data, total] = await this.order.findAndCount({
       where: { userId },
       relations: { orderItems: { product: true } },
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { createdAt: 'DESC' },
     });
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async findOne(id: string, userId: string, role: 'user' | 'admin') {
@@ -96,7 +120,7 @@ export class OrdersService {
   async update(id: string, userId: string, role: 'user' | 'admin', dto: UpdateOrderDto) {
     const order = await this.order.findOne({
       where: { id },
-      relations: { orderItems: true },
+      relations: { orderItems: { product: true } },
     });
     if (!order) throw new NotFoundException('Order not found');
 
@@ -110,6 +134,12 @@ export class OrdersService {
 
     if (dto.status) {
       this.validateStatusTransition(order.status, dto.status, { isOwner, isSupplier });
+    }
+
+    // L'annulation restitue toujours le stock réservé (transactionnel)
+    if (dto.status === OrderStatus.CANCELLED) {
+      await this.cancelWithRestock(id);
+      return await this.findOne(id, userId, role);
     }
 
     const updateData: {
@@ -138,15 +168,22 @@ export class OrdersService {
   }
 
   async cancelOrder(id: string) {
+    return this.cancelWithRestock(id);
+  }
+
+  private async cancelWithRestock(orderId: string) {
     return this.dataSource.transaction(async (manager) => {
       const existingOrder = await manager.findOne(Order, {
-        where: { id },
+        where: { id: orderId },
         relations: { orderItems: true },
       });
       if (!existingOrder) throw new NotFoundException('Order not found');
 
-      if (existingOrder.status !== OrderStatus.PENDING) {
-        throw new BadRequestException('Only pending orders can be cancelled');
+      if (
+        existingOrder.status === OrderStatus.CANCELLED ||
+        existingOrder.status === OrderStatus.COMPLETED
+      ) {
+        throw new BadRequestException('Order cannot be cancelled');
       }
 
       for (const item of existingOrder.orderItems) {

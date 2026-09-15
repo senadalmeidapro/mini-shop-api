@@ -1,7 +1,18 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseUUIDPipe,
+  Query,
+} from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
-import { currentUser } from '../common/decorators';
+import { currentUser, roles } from '../common/decorators';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('payments')
 export class PaymentsController {
@@ -17,8 +28,9 @@ export class PaymentsController {
   }
 
   @Get()
-  findAll() {
-    return this.paymentsService.findAll();
+  @roles('admin')
+  findAll(@Query() pagination: PaginationDto) {
+    return this.paymentsService.findAll(pagination);
   }
 
   @Get(':id')

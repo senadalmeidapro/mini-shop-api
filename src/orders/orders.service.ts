@@ -12,6 +12,7 @@ import { OrderItem } from './entities/order-item.entity';
 import { DataSource, In, Repository } from 'typeorm';
 import { Product } from '../products/entities/product.entity';
 import { Shop } from '../shops/entities/shop.entity';
+import { InvoicesService } from '../invoices/invoices.service';
 import { PaginationDto, PaginatedResult, buildPaginatedResult } from '../common/dto/pagination.dto';
 import { RoleLike } from '../common/decorators';
 
@@ -32,6 +33,8 @@ export class OrdersService {
 
     @InjectDataSource()
     private readonly dataSource: DataSource,
+
+    private readonly invoices: InvoicesService,
   ) {}
 
   async create(userId: string, createOrderDto: CreateOrderDto) {
@@ -116,6 +119,22 @@ export class OrdersService {
     }
 
     throw new ForbiddenException('Access denied');
+  }
+
+  async prepareInvoice(id: string, userId: string, role: RoleLike): Promise<string> {
+    const order = await this.findOne(id, userId, role);
+    const existing = this.invoices.getInvoicePath(id);
+    if (existing) return existing;
+
+    const mainShopId = order.orderItems.map((i) => i.product?.shopId).find(Boolean);
+    const shop = mainShopId ? await this.shop.findOneBy({ id: mainShopId }) : null;
+
+    return this.invoices.ensureInvoice(
+      order,
+      order.orderItems,
+      shop ?? ({ name: 'mini-shop', description: '' } as Shop),
+      { email: order.user.email, fullName: order.user.fullName },
+    );
   }
 
   async update(id: string, userId: string, role: RoleLike, dto: UpdateOrderDto) {

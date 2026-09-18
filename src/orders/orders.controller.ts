@@ -6,7 +6,6 @@ import {
   Param,
   ParseUUIDPipe,
   StreamableFile,
-  NotFoundException,
   Res,
   Query,
 } from '@nestjs/common';
@@ -15,15 +14,11 @@ import { createReadStream } from 'fs';
 import { OrdersService } from './orders.service';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { currentUser, type RoleLike } from '../common/decorators';
-import { InvoicesService } from '../invoices/invoices.service';
 import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('orders')
 export class OrdersController {
-  constructor(
-    private readonly ordersService: OrdersService,
-    private readonly invoicesService: InvoicesService,
-  ) {}
+  constructor(private readonly ordersService: OrdersService) {}
 
   // Les commandes sont créées exclusivement via le flux de paiement (PaymentsService)
 
@@ -53,10 +48,8 @@ export class OrdersController {
     @Res({ passthrough: true }) res: Response,
   ) {
     // Contrôle d'accès : propriétaire, fournisseur concerné ou admin
-    await this.ordersService.findOne(id, sub, role);
-
-    const filePath = this.invoicesService.getInvoicePath(id);
-    if (!filePath) throw new NotFoundException('Invoice not found');
+    // Génération à la demande si la facture n'existe pas encore.
+    const filePath = await this.ordersService.prepareInvoice(id, sub, role);
 
     res.set({
       'Content-Type': 'application/pdf',

@@ -90,6 +90,22 @@ export class PaymentsService {
     return buildPaginatedResult(data, total, page, limit);
   }
 
+  async findMine(
+    userId: string,
+    pagination: PaginationDto = {},
+  ): Promise<PaginatedResult<Payment>> {
+    const page = pagination.page ?? 1;
+    const limit = pagination.limit ?? 20;
+    const [data, total] = await this.payment.findAndCount({
+      where: { order: { userId } },
+      relations: { order: true },
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { createdAt: 'DESC' },
+    });
+    return buildPaginatedResult(data, total, page, limit);
+  }
+
   async findOne(id: string, userId: string, admin: boolean = false) {
     const existingPayment = await this.payment.findOne({
       where: { id },

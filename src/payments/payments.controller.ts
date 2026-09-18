@@ -33,6 +33,11 @@ export class PaymentsController {
     return this.paymentsService.findAll(pagination);
   }
 
+  @Get('me')
+  findMine(@currentUser('sub') sub: string, @Query() pagination: PaginationDto) {
+    return this.paymentsService.findMine(sub, pagination);
+  }
+
   @Get(':id')
   findOne(
     @currentUser('sub') sub: string,

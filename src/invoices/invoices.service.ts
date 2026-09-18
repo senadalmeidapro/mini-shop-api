@@ -196,4 +196,16 @@ export class InvoicesService {
     const filePath = path.join(this.storagePath, `invoice-${orderId}.pdf`);
     return fs.existsSync(filePath) ? filePath : null;
   }
+
+  async ensureInvoice(
+    order: Order,
+    items: OrderItem[],
+    shop: Shop,
+    customer: { email: string; fullName?: string },
+  ): Promise<string> {
+    const existing = this.getInvoicePath(order.id);
+    if (existing) return existing;
+    const { filePath } = await this.generateInvoice(order, items, shop, customer);
+    return filePath;
+  }
 }

@@ -34,13 +34,13 @@ export class Payment {
   amount!: number;
 
   @Column({
-    type: 'enum',
+    type: 'simple-enum',
     enum: PaymentStatus,
     default: PaymentStatus.PENDING,
   })
   status!: PaymentStatus;
 
-  @Column({ type: 'enum', enum: PaymentMethod })
+  @Column({ type: 'simple-enum', enum: PaymentMethod })
   method!: PaymentMethod;
 
   @Column({ name: 'transaction_id', nullable: true })

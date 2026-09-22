@@ -39,26 +39,10 @@ import { ServeStaticModule } from '@nestjs/serve-static';
       inject: [ConfigService],
 
       useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get<string>('DB_HOST'),
-        port: config.get<number>('DB_PORT'),
-        username: config.get<string>('DB_USERNAME'),
-        password: config.get<string>('DB_PASSWORD'),
-        database: config.get<string>('DB_NAME'),
-        ...(config.get<string>('DB_SSL') === 'true'
-          ? {
-              extra: {
-                ssl: {
-                  rejectUnauthorized: false,
-                },
-              },
-            }
-          : {}),
+        type: 'better-sqlite3',
+        database: config.get<string>('DB_NAME') ?? 'db.sqlite',
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        migrations: [__dirname + '/migrations/*{.ts,.js}'],
-        migrationsRun: true,
-        migrationsTableName: 'migrations',
-        synchronize: false,
+        synchronize: true,
       }),
     }),
 

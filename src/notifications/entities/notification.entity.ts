@@ -26,7 +26,7 @@ export class Notification {
   @Column({ name: 'user_id' })
   userId!: string;
 
-  @Column({ type: 'enum', enum: NotificationType })
+  @Column({ type: 'simple-enum', enum: NotificationType })
   type!: NotificationType;
 
   @Column({ length: 255 })
@@ -35,13 +35,13 @@ export class Notification {
   @Column({ type: 'text' })
   message!: string;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   data?: Record<string, unknown>;
 
   @Column({ type: 'boolean', default: false })
   read!: boolean;
 
-  @Column({ type: 'timestamp', nullable: true, name: 'read_at' })
+  @Column({ type: 'datetime', nullable: true, name: 'read_at' })
   readAt?: Date | null;
 
   @ManyToOne(() => User, (user) => user.notifications, {

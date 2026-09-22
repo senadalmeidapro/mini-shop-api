@@ -3,6 +3,7 @@ import 'dotenv/config';
 import dataSource from './data-source';
 
 import { seedUsers } from './seeds/users.seed';
+import { seedShops } from './seeds/shops.seed';
 import { seedCategories } from './seeds/categories.seed';
 import { seedProducts } from './seeds/products.seed';
 import { seedAddresses } from './seeds/addresses.seed';
@@ -15,12 +16,33 @@ async function run(): Promise<void> {
   await dataSource.initialize();
 
   console.log('Clearing existing data...');
-  await dataSource.query(
-    'TRUNCATE TABLE "payment", "order_item", "review", "order", "cart_item", "cart", "product", "category", "address", "user" RESTART IDENTITY CASCADE',
-  );
+  await dataSource.query('PRAGMA foreign_keys = OFF');
+
+  const tables = [
+    'notification',
+    'payment',
+    'order_item',
+    'review',
+    'order',
+    'cart_item',
+    'cart',
+    'product',
+    'shop',
+    'address',
+    'category',
+    'user',
+  ];
+  for (const table of tables) {
+    await dataSource.query(`DELETE FROM "${table}"`);
+  }
+
+  await dataSource.query('PRAGMA foreign_keys = ON');
 
   console.log('Seeding users...');
-  await seedUsers(dataSource);
+  const users = await seedUsers(dataSource);
+
+  console.log('Seeding shops...');
+  await seedShops(dataSource, users);
 
   console.log('Seeding categories...');
   await seedCategories(dataSource);

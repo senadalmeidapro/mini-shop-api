@@ -34,7 +34,7 @@ export class User {
   @Column({ type: 'varchar', name: 'full_name', nullable: true, length: 255 })
   fullName?: string;
 
-  @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
+  @Column({ type: 'simple-enum', enum: UserRole, default: UserRole.USER })
   role!: UserRole;
 
   @Column({ type: 'varchar', nullable: true, select: false })
@@ -46,7 +46,7 @@ export class User {
   @Column({ type: 'varchar', nullable: true, select: false, name: 'reset_password_token' })
   resetPasswordToken?: string | null;
 
-  @Column({ type: 'timestamp', nullable: true, select: false, name: 'reset_password_expires' })
+  @Column({ type: 'datetime', nullable: true, select: false, name: 'reset_password_expires' })
   resetPasswordExpires?: Date | null;
 
   @Column({ type: 'boolean', name: 'email_verified', default: false })

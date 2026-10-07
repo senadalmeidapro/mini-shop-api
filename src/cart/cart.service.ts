@@ -12,6 +12,17 @@ import { Product } from '../products/entities/product.entity';
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 
+const DRIVERS_WITHOUT_PESSIMISTIC_LOCKS = new Set([
+  'sqlite',
+  'sqljs',
+  'better-sqlite3',
+  'capacitor',
+  'expo',
+  'react-native',
+  'cordova',
+  'nativescript',
+]);
+
 @Injectable()
 export class CartService {
   constructor(
@@ -25,6 +36,11 @@ export class CartService {
     private readonly dataSource: DataSource,
   ) {}
 
+  private lock(): { mode: 'pessimistic_write' } | undefined {
+    const type = String(this.dataSource.options.type);
+    return DRIVERS_WITHOUT_PESSIMISTIC_LOCKS.has(type) ? undefined : { mode: 'pessimistic_write' };
+  }
+
   async addCartItem(userId: string, productId: string, createCartItemDto: CreateCartItemDto) {
     return this.dataSource.transaction(async (manager) => {
       let cart = await manager.findOne(Cart, { where: { userId } });
@@ -35,7 +51,7 @@ export class CartService {
 
       const existingProduct = await manager.findOne(Product, {
         where: { id: productId },
-        lock: { mode: 'pessimistic_write' },
+        lock: this.lock(),
       });
       if (!existingProduct) throw new NotFoundException('Product not found');
 
@@ -120,10 +136,10 @@ export class CartService {
         const product = existingCartItem.product;
         if (product) {
           if (delta > 0) {
-            // Verrou pessimiste : sérialise les mises à jour concurrentes du même produit
+            // Verrou pessimiste (si supporté) : sérialise les mises à jour concurrentes du même produit
             const lockedProduct = await manager.findOne(Product, {
               where: { id: product.id },
-              lock: { mode: 'pessimistic_write' },
+              lock: this.lock(),
             });
             const available = lockedProduct?.stock ?? 0;
             if (available < delta) {

@@ -135,7 +135,8 @@ export class PaymentsService {
       throw new BadRequestException('Invalid payment');
     }
 
-    await this.payment.update(id, updatePaymentDto);
+    const { shippingAddress, ...paymentPatch } = updatePaymentDto;
+    await this.payment.update(id, paymentPatch);
 
     // Payment validated by the customer -> trigger notifications + invoice
     if (updatePaymentDto.status === PaymentStatus.SUCCEEDED) {
@@ -144,7 +145,9 @@ export class PaymentsService {
         new OrderPaidEvent(
           existingPayment.orderId,
           userId,
-          updatePaymentDto.shippingAddress as Record<string, string> | undefined,
+          (shippingAddress ?? existingPayment.order.shippingAddress) as
+            | Record<string, string>
+            | undefined,
         ),
       );
     }

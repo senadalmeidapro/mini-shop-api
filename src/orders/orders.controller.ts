@@ -6,10 +6,8 @@ import {
   Param,
   ParseUUIDPipe,
   StreamableFile,
-  Res,
   Query,
 } from '@nestjs/common';
-import type { Response } from 'express';
 import { createReadStream } from 'fs';
 import { OrdersService } from './orders.service';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -45,17 +43,15 @@ export class OrdersController {
     @currentUser('sub') sub: string,
     @currentUser('role') role: RoleLike,
     @Param('id', ParseUUIDPipe) id: string,
-    @Res({ passthrough: true }) res: Response,
   ) {
     // Contrôle d'accès : propriétaire, fournisseur concerné ou admin
     // Génération à la demande si la facture n'existe pas encore.
     const filePath = await this.ordersService.prepareInvoice(id, sub, role);
 
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="invoice-${id}.pdf"`,
+    return new StreamableFile(createReadStream(filePath), {
+      type: 'application/pdf',
+      disposition: `attachment; filename="invoice-${id}.pdf"`,
     });
-    return new StreamableFile(createReadStream(filePath));
   }
 
   @Patch(':id')

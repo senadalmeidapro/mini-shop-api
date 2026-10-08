@@ -180,7 +180,11 @@ export class AuthService {
     const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
     const resetUrl = `${frontendUrl}/auth/reset-password?token=${resetToken}`;
 
-    await this.mail.sendResetPasswordEmail(user.email, resetUrl);
+    try {
+      await this.mail.sendResetPasswordEmail(user.email, resetUrl);
+    } catch {
+      this.logger.warn('Password reset email failed to send');
+    }
 
     return { message: 'If that email exists, a password reset link has been sent.' };
   }

@@ -88,17 +88,23 @@ export class OrderPaidListener {
       );
 
       // Email to supplier
-      await this.mailService.sendNewOrderToSupplier(
-        shop.owner.email,
-        shop.owner.fullName ?? shop.owner.email,
-        {
-          orderNumber: order.id.slice(0, 8).toUpperCase(),
-          customerName: order.user.fullName ?? order.user.email,
-          itemsHtml,
-          total: supplierTotal.toFixed(2),
-          createdAt: order.createdAt.toISOString().split('T')[0],
-        },
-      );
+      try {
+        await this.mailService.sendNewOrderToSupplier(
+          shop.owner.email,
+          shop.owner.fullName ?? shop.owner.email,
+          {
+            orderNumber: order.id.slice(0, 8).toUpperCase(),
+            customerName: order.user.fullName ?? order.user.email,
+            itemsHtml,
+            total: supplierTotal.toFixed(2),
+            createdAt: order.createdAt.toISOString().split('T')[0],
+          },
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Supplier email to ${shop.owner.email} failed: ${(error as Error).message}`,
+        );
+      }
     }
 
     // Generate invoice
@@ -131,15 +137,21 @@ export class OrderPaidListener {
       )
       .join('');
 
-    await this.mailService.sendOrderConfirmationToCustomer(order.user.email, {
-      orderNumber: order.id.slice(0, 8).toUpperCase(),
-      customerName: order.user.fullName ?? order.user.email,
-      itemsHtml: itemsHtmlCustomer,
-      total: Number(order.total).toFixed(2),
-      shippingAddress: event.shippingAddress,
-      estimatedDelivery: order.estimatedDelivery?.toISOString().split('T')[0],
-      attachmentPath: invoice.filePath,
-    });
+    try {
+      await this.mailService.sendOrderConfirmationToCustomer(order.user.email, {
+        orderNumber: order.id.slice(0, 8).toUpperCase(),
+        customerName: order.user.fullName ?? order.user.email,
+        itemsHtml: itemsHtmlCustomer,
+        total: Number(order.total).toFixed(2),
+        shippingAddress: event.shippingAddress,
+        estimatedDelivery: order.estimatedDelivery?.toISOString().split('T')[0],
+        attachmentPath: invoice.filePath,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Customer confirmation email to ${order.user.email} failed: ${(error as Error).message}`,
+      );
+    }
 
     this.logger.log(`Order ${event.orderId} payment processing completed`);
   }

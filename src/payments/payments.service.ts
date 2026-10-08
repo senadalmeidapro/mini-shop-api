@@ -146,8 +146,7 @@ export class PaymentsService {
           existingPayment.orderId,
           userId,
           (shippingAddress ?? existingPayment.order.shippingAddress) as
-            | Record<string, string>
-            | undefined,
+            Record<string, string> | undefined,
         ),
       );
     }

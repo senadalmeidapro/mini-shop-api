@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
-import type { Transporter } from 'nodemailer';
+import { readFile } from 'node:fs/promises';
 import 'reflect-metadata';
 import 'dotenv/config';
 
@@ -12,22 +11,16 @@ interface SendMailOptions {
   attachments?: Array<{ filename: string; path?: string; content?: Buffer }>;
 }
 
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
+const BREVO_ACCOUNT_URL = 'https://api.brevo.com/v3/account';
+const REQUEST_TIMEOUT_MS = 15_000;
+const MAX_ATTEMPTS = 2;
+
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly transporter: Transporter;
 
-  constructor(private readonly config: ConfigService) {
-    this.transporter = nodemailer.createTransport({
-      host: this.config.get<string>('SMTP_HOST') ?? 'smtp-relay.brevo.com',
-      port: Number(this.config.get<string>('SMTP_PORT') ?? 587),
-      secure: this.config.get<string>('SMTP_SECURE') === 'true',
-      auth: {
-        user: this.config.getOrThrow<string>('SMTP_USER'),
-        pass: this.config.getOrThrow<string>('SMTP_PASSWORD'),
-      },
-    });
-  }
+  constructor(private readonly config: ConfigService) {}
 
   // --- Existing templates ---
 
@@ -285,32 +278,99 @@ export class MailService {
   }
 
   async verifyConnection() {
+    const apiKey = this.config.get<string>('BREVO_API_KEY');
+    if (!apiKey) {
+      this.logger.error('BREVO_API_KEY is not set — emails cannot be sent');
+      return false;
+    }
     try {
-      await this.transporter.verify();
-      this.logger.log('SMTP connection verified');
+      const res = await fetch(BREVO_ACCOUNT_URL, {
+        headers: { 'accept': 'application/json', 'api-key': apiKey },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+      if (!res.ok) {
+        throw new Error(`Brevo API responded ${res.status}: ${await res.text()}`);
+      }
+      this.logger.log('Brevo API connection verified');
       return true;
     } catch (error) {
-      this.logger.error('SMTP connection verification failed', error as Error);
+      this.logger.error(`Brevo API verification failed: ${(error as Error).message}`);
       return false;
     }
   }
 
   private async sendMail({ to, subject, html, attachments }: SendMailOptions) {
     try {
-      await this.transporter.sendMail({
-        from: `"${this.config.get<string>('SMTP_FROM_NAME') ?? 'mini-shop'} " <${this.config.get<string>('SMTP_FROM')}>`,
-        to,
-        subject,
-        html,
-        text: html
-          .replace(/<[^>]*>/g, '')
-          .replace(/\s+/g, ' ')
-          .trim(),
-        attachments,
-      });
+      await this.postEmail({ to, subject, html, attachments });
       this.logger.log(`Email sent to ${to} (${subject})`);
     } catch (error) {
       this.logger.error(`Failed to send email to ${to}: ${(error as Error).message}`);
+      throw error;
     }
+  }
+
+  private async postEmail({ to, subject, html, attachments }: SendMailOptions) {
+    const apiKey = this.config.get<string>('BREVO_API_KEY');
+    if (!apiKey) {
+      throw new Error('BREVO_API_KEY is not set');
+    }
+    const senderEmail = this.config.get<string>('SMTP_FROM');
+    if (!senderEmail) {
+      throw new Error('SMTP_FROM is not set');
+    }
+
+    const payload = {
+      sender: {
+        name: this.config.get<string>('SMTP_FROM_NAME') ?? 'mini-shop',
+        email: senderEmail,
+      },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+      textContent: html
+        .replace(/<[^>]*>/g, '')
+        .replace(/\s+/g, ' ')
+        .trim(),
+      attachment: await this.encodeAttachments(attachments),
+    };
+
+    let lastError: Error | undefined;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const res = await fetch(BREVO_API_URL, {
+          method: 'POST',
+          headers: {
+            'accept': 'application/json',
+            'content-type': 'application/json',
+            'api-key': apiKey,
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+        if (res.ok) return;
+        lastError = new Error(`Brevo API responded ${res.status}: ${await res.text()}`);
+        if (res.status < 500) break;
+      } catch (error) {
+        lastError = error as Error;
+      }
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
+      }
+    }
+    throw lastError ?? new Error('Brevo API request failed');
+  }
+
+  private async encodeAttachments(attachments?: SendMailOptions['attachments']) {
+    if (!attachments?.length) return undefined;
+    return Promise.all(
+      attachments.map(async (attachment) => {
+        const buffer =
+          attachment.content ?? (attachment.path ? await readFile(attachment.path) : undefined);
+        if (!buffer) {
+          throw new Error(`Attachment "${attachment.filename}" has no content or path`);
+        }
+        return { name: attachment.filename, content: buffer.toString('base64') };
+      }),
+    );
   }
 }

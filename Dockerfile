@@ -49,7 +49,7 @@ FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production \
-    PORT=4000 \
+    PORT=3000 \
     CI=true
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -75,7 +75,7 @@ COPY --from=build --chown=nodeapp:nodeapp \
 
 USER nodeapp
 
-EXPOSE 4000
+EXPOSE 3000
 
 ENTRYPOINT ["dumb-init", "--"]
 

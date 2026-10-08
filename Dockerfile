@@ -87,6 +87,14 @@ RUN groupadd -r nodeapp \
 
 
 # ─────────────────────────────────────
+# Product images (served at /storage/products/*)
+# ─────────────────────────────────────
+COPY --chown=nodeapp:nodeapp \
+    storage/products \
+    /app/storage/products/
+
+
+# ─────────────────────────────────────
 # Node dependencies
 # ─────────────────────────────────────
 COPY --from=deps \

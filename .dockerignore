@@ -22,12 +22,6 @@ db.sqlite-journal
 db.sqlite-shm
 db.sqlite-wal
 
-# Uploads locaux (on les monte via volume)
-storage/products/*.png
-storage/invoices/*.pdf
-!storage/products/.gitkeep
-!storage/invoices/.gitkeep
-
 # Git/IDE
 .git
 .gitignore

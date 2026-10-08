@@ -51,7 +51,6 @@ pids
 *.pid
 *.seed
 *.pid.lock
-*.sqlite
 *.sqlite-journal
 *.sqlite-shm
 *.sqlite-wal

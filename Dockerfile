@@ -50,7 +50,8 @@ WORKDIR /app
 
 ENV NODE_ENV=production \
     PORT=3000 \
-    CI=true
+    CI=true \
+    DATABASE_PATH=/data/db.sqlite
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -72,6 +73,10 @@ COPY --from=build --chown=nodeapp:nodeapp \
 
 COPY --from=build --chown=nodeapp:nodeapp \
     /app/package.json ./package.json
+
+# SQLite database
+COPY --chown=nodeapp:nodeapp \
+    data/db.sqlite /data/db.sqlite
 
 USER nodeapp
 
